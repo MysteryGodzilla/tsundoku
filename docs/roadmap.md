@@ -122,7 +122,9 @@ If the server can't read a library, it can't rescue one either, so recovery is s
   its PRF secret on the device. So the passkey belongs to one fixed project domain that hosts
   nothing but `/.well-known/assetlinks.json` (Android's proof that the domain trusts the app's
   signing key), whichever sync server a person uses. A fork signed with its own key needs its own
-  domain.
+  domain. Decided 2026-11-14: `mysterygodzilla.github.io` (GitHub Pages, repo
+  MysteryGodzilla/MysteryGodzilla.github.io), free. Its `assetlinks.json` lists the spike's debug key
+  for now; the real app's release key is added when it exists.
 - **Fallback:** if the Phase 0 test shows passkeys with PRF don't work on her phone, the app shows a
   one-time recovery code at sign-up instead (her original Q2 answer). The local backups and
   spreadsheet export stay as further safety nets.
@@ -198,10 +200,12 @@ until she's happy with the current one.
   product owner).
 - Spike, thrown away afterwards (built 2026-11-14, kept outside the repo): a Flutter app on her Android phone that scans a barcode, looks it up
   on Open Library, saves it to SQLite and finds it offline. The same on a laptop webcam.
-  Status 2026-11-14: automated tests pass (owned check across editions, local search, live Open
+  Tried on her phone 2026-11-14: scanning, search and typed ISBNs all work. Two Australian books
+  weren't found, which led to the [book sources research](book-sources.md): Open Library knew only
+  17 of 48 recent Australian books. Status 2026-11-14: automated tests pass (owned check across editions, local search, live Open
   Library lookups); the Android APK and web builds work; in a desktop browser the database opens in
   persistent OPFS storage. **Still to try:** scanning on her real phone and a laptop webcam.
-- Passkey test on her phone (needs the project domain above first): create a passkey in her Google account from the Flutter app, read its PRF
+- Passkey test on her phone (domain ready 2026-11-14): create a passkey in her Google account from the Flutter app, read its PRF
   secret, and get the same secret back after reinstalling the app. If this fails, try the Expo
   fallback before settling for the recovery code.
 - ~~Check Open Library's limits, terms and Kindle coverage~~ Done 2026-11-14:
@@ -279,6 +283,14 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 - ~~**Q6. Starting look.**~~ Answered 2026-11-14: the app opens in Sage, in light or dark to match the
   phone's own setting, until she picks in Settings.
 
+- **Q7. Books Open Library doesn't know.** Open Library is missing about two in three recent
+  Australian books. Her brief says Open Library only, with no second source. Options: (a) keep Open
+  Library only and type the rest in; (b) when Open Library doesn't know a book, also ask Trove, the
+  National Library of Australia's free catalogue, which has nearly every Australian book (but rarely
+  a cover: she'd snap a photo); (c) Google Books as the second source instead (more covers, but her
+  brief ruled it out). Recommended: (b), after testing it on the same books. Details:
+  [book-sources.md](book-sources.md).
+
 ## 6. Open (deferred in the brief)
 - Hosting provider and costs for a public service; email provider (only the hosted service needs one).
 - Exact backup schedule options.
@@ -303,3 +315,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Stack: Flutter (Dart) app, `drift` SQLite, `mobile_scanner`; Dart (`shelf`) server. Expo is the fallback if passkey PRF fails in Phase 0 | Mystery |
 | 2026-11-14 | Settings: pick one of four accents (Sage, Dusty blue, Blush, Heather) and Light or Dark; nothing more complicated. The fourth accent is named Heather so it doesn't sound like Dusty blue | Mystery |
 | 2026-11-14 | Q6: first launch uses Sage, light or dark following the phone, until changed in Settings | Mystery |
+| 2026-11-14 | Passkey project domain: mysterygodzilla.github.io (GitHub Pages), hosting only `assetlinks.json` | Mystery |
