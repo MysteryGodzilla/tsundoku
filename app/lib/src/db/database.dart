@@ -83,9 +83,46 @@ class ChangeLog extends Table {
   /// The new value as JSON (null for a deletion).
   TextColumn get value => text().nullable()();
   DateTimeColumn get at => dateTime()();
+
+  /// Sync (schema 3): the hybrid logical clock and device of a change; null for history from before.
+  TextColumn get hlc => text().nullable()();
+  TextColumn get device => text().nullable()();
+
+  /// True once sent to the sync server (or when it never needs sending).
+  BoolColumn get pushed => boolean().withDefault(const Constant(false))();
 }
 
-@DriftDatabase(tables: [Books, BookIdentifiers, BookGenres, ChangeLog])
+/// Small sync settings: this device's id, the server cursor per account, whether the library
+/// was first uploaded for an account.
+class SyncMeta extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+  @override
+  Set<Column> get primaryKey => {key};
+}
+
+/// The newest change applied to each field of each book, for "the later change wins".
+class FieldClocks extends Table {
+  TextColumn get bookId => text()();
+  TextColumn get field => text()();
+  TextColumn get hlc => text()();
+  @override
+  Set<Column> get primaryKey => {bookId, field};
+}
+
+/// Changes made on two devices that need her decision.
+class SyncConflicts extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  TextColumn get bookId => text()();
+
+  /// A field name, or `deletedThere` (deleted on another device, edited here) or `deletedHere`.
+  TextColumn get field => text()();
+  TextColumn get localValue => text().nullable()();
+  TextColumn get remoteValue => text().nullable()();
+  TextColumn get remoteHlc => text()();
+}
+
+@DriftDatabase(tables: [Books, BookIdentifiers, BookGenres, ChangeLog, SyncMeta, FieldClocks, SyncConflicts])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor])
       : super(executor ??
@@ -95,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
             ));
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +142,16 @@ class AppDatabase extends _$AppDatabase {
         },
         onUpgrade: (m, from, to) async {
           if (from < 2) await m.addColumn(books, books.finishedOn);
+          if (from < 3) {
+            await m.addColumn(changeLog, changeLog.hlc);
+            await m.addColumn(changeLog, changeLog.device);
+            await m.addColumn(changeLog, changeLog.pushed);
+            await m.createTable(syncMeta);
+            await m.createTable(fieldClocks);
+            await m.createTable(syncConflicts);
+            // History from before sync never needs sending.
+            await customStatement('UPDATE change_log SET pushed = 1');
+          }
         },
         beforeOpen: (details) async => customStatement('PRAGMA foreign_keys = ON'),
       );

@@ -152,6 +152,12 @@ void main() {
       var db = AppDatabase(NativeDatabase(file));
       await LibraryRepository(db).addManual(title: 'Carrie', authors: ['Stephen King'], format: OwnershipFormat.physical);
       await db.customStatement('ALTER TABLE books DROP COLUMN finished_on');
+      for (final c in ['hlc', 'device', 'pushed']) {
+        await db.customStatement('ALTER TABLE change_log DROP COLUMN $c');
+      }
+      for (final t in ['sync_meta', 'field_clocks', 'sync_conflicts']) {
+        await db.customStatement('DROP TABLE $t');
+      }
       await db.customStatement('PRAGMA user_version = 1');
       await db.close();
 

@@ -1502,8 +1502,48 @@ class $ChangeLogTable extends ChangeLog
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
   @override
-  List<GeneratedColumn> get $columns => [seq, bookId, field, value, at];
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _deviceMeta = const VerificationMeta('device');
+  @override
+  late final GeneratedColumn<String> device = GeneratedColumn<String>(
+    'device',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pushedMeta = const VerificationMeta('pushed');
+  @override
+  late final GeneratedColumn<bool> pushed = GeneratedColumn<bool>(
+    'pushed',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("pushed" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    seq,
+    bookId,
+    field,
+    value,
+    at,
+    hlc,
+    device,
+    pushed,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1549,6 +1589,24 @@ class $ChangeLogTable extends ChangeLog
     } else if (isInserting) {
       context.missing(_atMeta);
     }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
+      );
+    }
+    if (data.containsKey('device')) {
+      context.handle(
+        _deviceMeta,
+        device.isAcceptableOrUnknown(data['device']!, _deviceMeta),
+      );
+    }
+    if (data.containsKey('pushed')) {
+      context.handle(
+        _pushedMeta,
+        pushed.isAcceptableOrUnknown(data['pushed']!, _pushedMeta),
+      );
+    }
     return context;
   }
 
@@ -1578,6 +1636,18 @@ class $ChangeLogTable extends ChangeLog
         DriftSqlType.dateTime,
         data['${effectivePrefix}at'],
       )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      ),
+      device: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}device'],
+      ),
+      pushed: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}pushed'],
+      )!,
     );
   }
 
@@ -1597,12 +1667,22 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
   /// The new value as JSON (null for a deletion).
   final String? value;
   final DateTime at;
+
+  /// Sync (schema 3): the hybrid logical clock and device of a change; null for history from before.
+  final String? hlc;
+  final String? device;
+
+  /// True once sent to the sync server (or when it never needs sending).
+  final bool pushed;
   const ChangeLogData({
     required this.seq,
     required this.bookId,
     required this.field,
     this.value,
     required this.at,
+    this.hlc,
+    this.device,
+    required this.pushed,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -1614,6 +1694,13 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
       map['value'] = Variable<String>(value);
     }
     map['at'] = Variable<DateTime>(at);
+    if (!nullToAbsent || hlc != null) {
+      map['hlc'] = Variable<String>(hlc);
+    }
+    if (!nullToAbsent || device != null) {
+      map['device'] = Variable<String>(device);
+    }
+    map['pushed'] = Variable<bool>(pushed);
     return map;
   }
 
@@ -1626,6 +1713,11 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
           ? const Value.absent()
           : Value(value),
       at: Value(at),
+      hlc: hlc == null && nullToAbsent ? const Value.absent() : Value(hlc),
+      device: device == null && nullToAbsent
+          ? const Value.absent()
+          : Value(device),
+      pushed: Value(pushed),
     );
   }
 
@@ -1640,6 +1732,9 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
       field: serializer.fromJson<String>(json['field']),
       value: serializer.fromJson<String?>(json['value']),
       at: serializer.fromJson<DateTime>(json['at']),
+      hlc: serializer.fromJson<String?>(json['hlc']),
+      device: serializer.fromJson<String?>(json['device']),
+      pushed: serializer.fromJson<bool>(json['pushed']),
     );
   }
   @override
@@ -1651,6 +1746,9 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
       'field': serializer.toJson<String>(field),
       'value': serializer.toJson<String?>(value),
       'at': serializer.toJson<DateTime>(at),
+      'hlc': serializer.toJson<String?>(hlc),
+      'device': serializer.toJson<String?>(device),
+      'pushed': serializer.toJson<bool>(pushed),
     };
   }
 
@@ -1660,12 +1758,18 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
     String? field,
     Value<String?> value = const Value.absent(),
     DateTime? at,
+    Value<String?> hlc = const Value.absent(),
+    Value<String?> device = const Value.absent(),
+    bool? pushed,
   }) => ChangeLogData(
     seq: seq ?? this.seq,
     bookId: bookId ?? this.bookId,
     field: field ?? this.field,
     value: value.present ? value.value : this.value,
     at: at ?? this.at,
+    hlc: hlc.present ? hlc.value : this.hlc,
+    device: device.present ? device.value : this.device,
+    pushed: pushed ?? this.pushed,
   );
   ChangeLogData copyWithCompanion(ChangeLogCompanion data) {
     return ChangeLogData(
@@ -1674,6 +1778,9 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
       field: data.field.present ? data.field.value : this.field,
       value: data.value.present ? data.value.value : this.value,
       at: data.at.present ? data.at.value : this.at,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
+      device: data.device.present ? data.device.value : this.device,
+      pushed: data.pushed.present ? data.pushed.value : this.pushed,
     );
   }
 
@@ -1684,13 +1791,17 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
           ..write('bookId: $bookId, ')
           ..write('field: $field, ')
           ..write('value: $value, ')
-          ..write('at: $at')
+          ..write('at: $at, ')
+          ..write('hlc: $hlc, ')
+          ..write('device: $device, ')
+          ..write('pushed: $pushed')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(seq, bookId, field, value, at);
+  int get hashCode =>
+      Object.hash(seq, bookId, field, value, at, hlc, device, pushed);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1699,7 +1810,10 @@ class ChangeLogData extends DataClass implements Insertable<ChangeLogData> {
           other.bookId == this.bookId &&
           other.field == this.field &&
           other.value == this.value &&
-          other.at == this.at);
+          other.at == this.at &&
+          other.hlc == this.hlc &&
+          other.device == this.device &&
+          other.pushed == this.pushed);
 }
 
 class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
@@ -1708,12 +1822,18 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
   final Value<String> field;
   final Value<String?> value;
   final Value<DateTime> at;
+  final Value<String?> hlc;
+  final Value<String?> device;
+  final Value<bool> pushed;
   const ChangeLogCompanion({
     this.seq = const Value.absent(),
     this.bookId = const Value.absent(),
     this.field = const Value.absent(),
     this.value = const Value.absent(),
     this.at = const Value.absent(),
+    this.hlc = const Value.absent(),
+    this.device = const Value.absent(),
+    this.pushed = const Value.absent(),
   });
   ChangeLogCompanion.insert({
     this.seq = const Value.absent(),
@@ -1721,6 +1841,9 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
     required String field,
     this.value = const Value.absent(),
     required DateTime at,
+    this.hlc = const Value.absent(),
+    this.device = const Value.absent(),
+    this.pushed = const Value.absent(),
   }) : bookId = Value(bookId),
        field = Value(field),
        at = Value(at);
@@ -1730,6 +1853,9 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
     Expression<String>? field,
     Expression<String>? value,
     Expression<DateTime>? at,
+    Expression<String>? hlc,
+    Expression<String>? device,
+    Expression<bool>? pushed,
   }) {
     return RawValuesInsertable({
       if (seq != null) 'seq': seq,
@@ -1737,6 +1863,9 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
       if (field != null) 'field': field,
       if (value != null) 'value': value,
       if (at != null) 'at': at,
+      if (hlc != null) 'hlc': hlc,
+      if (device != null) 'device': device,
+      if (pushed != null) 'pushed': pushed,
     });
   }
 
@@ -1746,6 +1875,9 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
     Value<String>? field,
     Value<String?>? value,
     Value<DateTime>? at,
+    Value<String?>? hlc,
+    Value<String?>? device,
+    Value<bool>? pushed,
   }) {
     return ChangeLogCompanion(
       seq: seq ?? this.seq,
@@ -1753,6 +1885,9 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
       field: field ?? this.field,
       value: value ?? this.value,
       at: at ?? this.at,
+      hlc: hlc ?? this.hlc,
+      device: device ?? this.device,
+      pushed: pushed ?? this.pushed,
     );
   }
 
@@ -1774,6 +1909,15 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
     if (at.present) {
       map['at'] = Variable<DateTime>(at.value);
     }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
+    if (device.present) {
+      map['device'] = Variable<String>(device.value);
+    }
+    if (pushed.present) {
+      map['pushed'] = Variable<bool>(pushed.value);
+    }
     return map;
   }
 
@@ -1784,7 +1928,885 @@ class ChangeLogCompanion extends UpdateCompanion<ChangeLogData> {
           ..write('bookId: $bookId, ')
           ..write('field: $field, ')
           ..write('value: $value, ')
-          ..write('at: $at')
+          ..write('at: $at, ')
+          ..write('hlc: $hlc, ')
+          ..write('device: $device, ')
+          ..write('pushed: $pushed')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncMetaTable extends SyncMeta
+    with TableInfo<$SyncMetaTable, SyncMetaData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncMetaTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _keyMeta = const VerificationMeta('key');
+  @override
+  late final GeneratedColumn<String> key = GeneratedColumn<String>(
+    'key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [key, value];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_meta';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncMetaData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('key')) {
+      context.handle(
+        _keyMeta,
+        key.isAcceptableOrUnknown(data['key']!, _keyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_keyMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {key};
+  @override
+  SyncMetaData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncMetaData(
+      key: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}key'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncMetaTable createAlias(String alias) {
+    return $SyncMetaTable(attachedDatabase, alias);
+  }
+}
+
+class SyncMetaData extends DataClass implements Insertable<SyncMetaData> {
+  final String key;
+  final String value;
+  const SyncMetaData({required this.key, required this.value});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['key'] = Variable<String>(key);
+    map['value'] = Variable<String>(value);
+    return map;
+  }
+
+  SyncMetaCompanion toCompanion(bool nullToAbsent) {
+    return SyncMetaCompanion(key: Value(key), value: Value(value));
+  }
+
+  factory SyncMetaData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncMetaData(
+      key: serializer.fromJson<String>(json['key']),
+      value: serializer.fromJson<String>(json['value']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'key': serializer.toJson<String>(key),
+      'value': serializer.toJson<String>(value),
+    };
+  }
+
+  SyncMetaData copyWith({String? key, String? value}) =>
+      SyncMetaData(key: key ?? this.key, value: value ?? this.value);
+  SyncMetaData copyWithCompanion(SyncMetaCompanion data) {
+    return SyncMetaData(
+      key: data.key.present ? data.key.value : this.key,
+      value: data.value.present ? data.value.value : this.value,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaData(')
+          ..write('key: $key, ')
+          ..write('value: $value')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(key, value);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncMetaData &&
+          other.key == this.key &&
+          other.value == this.value);
+}
+
+class SyncMetaCompanion extends UpdateCompanion<SyncMetaData> {
+  final Value<String> key;
+  final Value<String> value;
+  final Value<int> rowid;
+  const SyncMetaCompanion({
+    this.key = const Value.absent(),
+    this.value = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SyncMetaCompanion.insert({
+    required String key,
+    required String value,
+    this.rowid = const Value.absent(),
+  }) : key = Value(key),
+       value = Value(value);
+  static Insertable<SyncMetaData> custom({
+    Expression<String>? key,
+    Expression<String>? value,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (key != null) 'key': key,
+      if (value != null) 'value': value,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SyncMetaCompanion copyWith({
+    Value<String>? key,
+    Value<String>? value,
+    Value<int>? rowid,
+  }) {
+    return SyncMetaCompanion(
+      key: key ?? this.key,
+      value: value ?? this.value,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (key.present) {
+      map['key'] = Variable<String>(key.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncMetaCompanion(')
+          ..write('key: $key, ')
+          ..write('value: $value, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $FieldClocksTable extends FieldClocks
+    with TableInfo<$FieldClocksTable, FieldClock> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FieldClocksTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+    'book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fieldMeta = const VerificationMeta('field');
+  @override
+  late final GeneratedColumn<String> field = GeneratedColumn<String>(
+    'field',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _hlcMeta = const VerificationMeta('hlc');
+  @override
+  late final GeneratedColumn<String> hlc = GeneratedColumn<String>(
+    'hlc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [bookId, field, hlc];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'field_clocks';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<FieldClock> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('book_id')) {
+      context.handle(
+        _bookIdMeta,
+        bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('field')) {
+      context.handle(
+        _fieldMeta,
+        field.isAcceptableOrUnknown(data['field']!, _fieldMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fieldMeta);
+    }
+    if (data.containsKey('hlc')) {
+      context.handle(
+        _hlcMeta,
+        hlc.isAcceptableOrUnknown(data['hlc']!, _hlcMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_hlcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {bookId, field};
+  @override
+  FieldClock map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FieldClock(
+      bookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}book_id'],
+      )!,
+      field: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}field'],
+      )!,
+      hlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}hlc'],
+      )!,
+    );
+  }
+
+  @override
+  $FieldClocksTable createAlias(String alias) {
+    return $FieldClocksTable(attachedDatabase, alias);
+  }
+}
+
+class FieldClock extends DataClass implements Insertable<FieldClock> {
+  final String bookId;
+  final String field;
+  final String hlc;
+  const FieldClock({
+    required this.bookId,
+    required this.field,
+    required this.hlc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['book_id'] = Variable<String>(bookId);
+    map['field'] = Variable<String>(field);
+    map['hlc'] = Variable<String>(hlc);
+    return map;
+  }
+
+  FieldClocksCompanion toCompanion(bool nullToAbsent) {
+    return FieldClocksCompanion(
+      bookId: Value(bookId),
+      field: Value(field),
+      hlc: Value(hlc),
+    );
+  }
+
+  factory FieldClock.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FieldClock(
+      bookId: serializer.fromJson<String>(json['bookId']),
+      field: serializer.fromJson<String>(json['field']),
+      hlc: serializer.fromJson<String>(json['hlc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'bookId': serializer.toJson<String>(bookId),
+      'field': serializer.toJson<String>(field),
+      'hlc': serializer.toJson<String>(hlc),
+    };
+  }
+
+  FieldClock copyWith({String? bookId, String? field, String? hlc}) =>
+      FieldClock(
+        bookId: bookId ?? this.bookId,
+        field: field ?? this.field,
+        hlc: hlc ?? this.hlc,
+      );
+  FieldClock copyWithCompanion(FieldClocksCompanion data) {
+    return FieldClock(
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      field: data.field.present ? data.field.value : this.field,
+      hlc: data.hlc.present ? data.hlc.value : this.hlc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FieldClock(')
+          ..write('bookId: $bookId, ')
+          ..write('field: $field, ')
+          ..write('hlc: $hlc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(bookId, field, hlc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FieldClock &&
+          other.bookId == this.bookId &&
+          other.field == this.field &&
+          other.hlc == this.hlc);
+}
+
+class FieldClocksCompanion extends UpdateCompanion<FieldClock> {
+  final Value<String> bookId;
+  final Value<String> field;
+  final Value<String> hlc;
+  final Value<int> rowid;
+  const FieldClocksCompanion({
+    this.bookId = const Value.absent(),
+    this.field = const Value.absent(),
+    this.hlc = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FieldClocksCompanion.insert({
+    required String bookId,
+    required String field,
+    required String hlc,
+    this.rowid = const Value.absent(),
+  }) : bookId = Value(bookId),
+       field = Value(field),
+       hlc = Value(hlc);
+  static Insertable<FieldClock> custom({
+    Expression<String>? bookId,
+    Expression<String>? field,
+    Expression<String>? hlc,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (bookId != null) 'book_id': bookId,
+      if (field != null) 'field': field,
+      if (hlc != null) 'hlc': hlc,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FieldClocksCompanion copyWith({
+    Value<String>? bookId,
+    Value<String>? field,
+    Value<String>? hlc,
+    Value<int>? rowid,
+  }) {
+    return FieldClocksCompanion(
+      bookId: bookId ?? this.bookId,
+      field: field ?? this.field,
+      hlc: hlc ?? this.hlc,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (bookId.present) {
+      map['book_id'] = Variable<String>(bookId.value);
+    }
+    if (field.present) {
+      map['field'] = Variable<String>(field.value);
+    }
+    if (hlc.present) {
+      map['hlc'] = Variable<String>(hlc.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FieldClocksCompanion(')
+          ..write('bookId: $bookId, ')
+          ..write('field: $field, ')
+          ..write('hlc: $hlc, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $SyncConflictsTable extends SyncConflicts
+    with TableInfo<$SyncConflictsTable, SyncConflict> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SyncConflictsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _bookIdMeta = const VerificationMeta('bookId');
+  @override
+  late final GeneratedColumn<String> bookId = GeneratedColumn<String>(
+    'book_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _fieldMeta = const VerificationMeta('field');
+  @override
+  late final GeneratedColumn<String> field = GeneratedColumn<String>(
+    'field',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _localValueMeta = const VerificationMeta(
+    'localValue',
+  );
+  @override
+  late final GeneratedColumn<String> localValue = GeneratedColumn<String>(
+    'local_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remoteValueMeta = const VerificationMeta(
+    'remoteValue',
+  );
+  @override
+  late final GeneratedColumn<String> remoteValue = GeneratedColumn<String>(
+    'remote_value',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _remoteHlcMeta = const VerificationMeta(
+    'remoteHlc',
+  );
+  @override
+  late final GeneratedColumn<String> remoteHlc = GeneratedColumn<String>(
+    'remote_hlc',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    bookId,
+    field,
+    localValue,
+    remoteValue,
+    remoteHlc,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'sync_conflicts';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SyncConflict> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('book_id')) {
+      context.handle(
+        _bookIdMeta,
+        bookId.isAcceptableOrUnknown(data['book_id']!, _bookIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bookIdMeta);
+    }
+    if (data.containsKey('field')) {
+      context.handle(
+        _fieldMeta,
+        field.isAcceptableOrUnknown(data['field']!, _fieldMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_fieldMeta);
+    }
+    if (data.containsKey('local_value')) {
+      context.handle(
+        _localValueMeta,
+        localValue.isAcceptableOrUnknown(data['local_value']!, _localValueMeta),
+      );
+    }
+    if (data.containsKey('remote_value')) {
+      context.handle(
+        _remoteValueMeta,
+        remoteValue.isAcceptableOrUnknown(
+          data['remote_value']!,
+          _remoteValueMeta,
+        ),
+      );
+    }
+    if (data.containsKey('remote_hlc')) {
+      context.handle(
+        _remoteHlcMeta,
+        remoteHlc.isAcceptableOrUnknown(data['remote_hlc']!, _remoteHlcMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_remoteHlcMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  SyncConflict map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SyncConflict(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      bookId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}book_id'],
+      )!,
+      field: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}field'],
+      )!,
+      localValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_value'],
+      ),
+      remoteValue: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_value'],
+      ),
+      remoteHlc: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}remote_hlc'],
+      )!,
+    );
+  }
+
+  @override
+  $SyncConflictsTable createAlias(String alias) {
+    return $SyncConflictsTable(attachedDatabase, alias);
+  }
+}
+
+class SyncConflict extends DataClass implements Insertable<SyncConflict> {
+  final int id;
+  final String bookId;
+
+  /// A field name, or `deletedThere` (deleted on another device, edited here) or `deletedHere`.
+  final String field;
+  final String? localValue;
+  final String? remoteValue;
+  final String remoteHlc;
+  const SyncConflict({
+    required this.id,
+    required this.bookId,
+    required this.field,
+    this.localValue,
+    this.remoteValue,
+    required this.remoteHlc,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['book_id'] = Variable<String>(bookId);
+    map['field'] = Variable<String>(field);
+    if (!nullToAbsent || localValue != null) {
+      map['local_value'] = Variable<String>(localValue);
+    }
+    if (!nullToAbsent || remoteValue != null) {
+      map['remote_value'] = Variable<String>(remoteValue);
+    }
+    map['remote_hlc'] = Variable<String>(remoteHlc);
+    return map;
+  }
+
+  SyncConflictsCompanion toCompanion(bool nullToAbsent) {
+    return SyncConflictsCompanion(
+      id: Value(id),
+      bookId: Value(bookId),
+      field: Value(field),
+      localValue: localValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localValue),
+      remoteValue: remoteValue == null && nullToAbsent
+          ? const Value.absent()
+          : Value(remoteValue),
+      remoteHlc: Value(remoteHlc),
+    );
+  }
+
+  factory SyncConflict.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SyncConflict(
+      id: serializer.fromJson<int>(json['id']),
+      bookId: serializer.fromJson<String>(json['bookId']),
+      field: serializer.fromJson<String>(json['field']),
+      localValue: serializer.fromJson<String?>(json['localValue']),
+      remoteValue: serializer.fromJson<String?>(json['remoteValue']),
+      remoteHlc: serializer.fromJson<String>(json['remoteHlc']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'bookId': serializer.toJson<String>(bookId),
+      'field': serializer.toJson<String>(field),
+      'localValue': serializer.toJson<String?>(localValue),
+      'remoteValue': serializer.toJson<String?>(remoteValue),
+      'remoteHlc': serializer.toJson<String>(remoteHlc),
+    };
+  }
+
+  SyncConflict copyWith({
+    int? id,
+    String? bookId,
+    String? field,
+    Value<String?> localValue = const Value.absent(),
+    Value<String?> remoteValue = const Value.absent(),
+    String? remoteHlc,
+  }) => SyncConflict(
+    id: id ?? this.id,
+    bookId: bookId ?? this.bookId,
+    field: field ?? this.field,
+    localValue: localValue.present ? localValue.value : this.localValue,
+    remoteValue: remoteValue.present ? remoteValue.value : this.remoteValue,
+    remoteHlc: remoteHlc ?? this.remoteHlc,
+  );
+  SyncConflict copyWithCompanion(SyncConflictsCompanion data) {
+    return SyncConflict(
+      id: data.id.present ? data.id.value : this.id,
+      bookId: data.bookId.present ? data.bookId.value : this.bookId,
+      field: data.field.present ? data.field.value : this.field,
+      localValue: data.localValue.present
+          ? data.localValue.value
+          : this.localValue,
+      remoteValue: data.remoteValue.present
+          ? data.remoteValue.value
+          : this.remoteValue,
+      remoteHlc: data.remoteHlc.present ? data.remoteHlc.value : this.remoteHlc,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncConflict(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('field: $field, ')
+          ..write('localValue: $localValue, ')
+          ..write('remoteValue: $remoteValue, ')
+          ..write('remoteHlc: $remoteHlc')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, bookId, field, localValue, remoteValue, remoteHlc);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SyncConflict &&
+          other.id == this.id &&
+          other.bookId == this.bookId &&
+          other.field == this.field &&
+          other.localValue == this.localValue &&
+          other.remoteValue == this.remoteValue &&
+          other.remoteHlc == this.remoteHlc);
+}
+
+class SyncConflictsCompanion extends UpdateCompanion<SyncConflict> {
+  final Value<int> id;
+  final Value<String> bookId;
+  final Value<String> field;
+  final Value<String?> localValue;
+  final Value<String?> remoteValue;
+  final Value<String> remoteHlc;
+  const SyncConflictsCompanion({
+    this.id = const Value.absent(),
+    this.bookId = const Value.absent(),
+    this.field = const Value.absent(),
+    this.localValue = const Value.absent(),
+    this.remoteValue = const Value.absent(),
+    this.remoteHlc = const Value.absent(),
+  });
+  SyncConflictsCompanion.insert({
+    this.id = const Value.absent(),
+    required String bookId,
+    required String field,
+    this.localValue = const Value.absent(),
+    this.remoteValue = const Value.absent(),
+    required String remoteHlc,
+  }) : bookId = Value(bookId),
+       field = Value(field),
+       remoteHlc = Value(remoteHlc);
+  static Insertable<SyncConflict> custom({
+    Expression<int>? id,
+    Expression<String>? bookId,
+    Expression<String>? field,
+    Expression<String>? localValue,
+    Expression<String>? remoteValue,
+    Expression<String>? remoteHlc,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (bookId != null) 'book_id': bookId,
+      if (field != null) 'field': field,
+      if (localValue != null) 'local_value': localValue,
+      if (remoteValue != null) 'remote_value': remoteValue,
+      if (remoteHlc != null) 'remote_hlc': remoteHlc,
+    });
+  }
+
+  SyncConflictsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? bookId,
+    Value<String>? field,
+    Value<String?>? localValue,
+    Value<String?>? remoteValue,
+    Value<String>? remoteHlc,
+  }) {
+    return SyncConflictsCompanion(
+      id: id ?? this.id,
+      bookId: bookId ?? this.bookId,
+      field: field ?? this.field,
+      localValue: localValue ?? this.localValue,
+      remoteValue: remoteValue ?? this.remoteValue,
+      remoteHlc: remoteHlc ?? this.remoteHlc,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (bookId.present) {
+      map['book_id'] = Variable<String>(bookId.value);
+    }
+    if (field.present) {
+      map['field'] = Variable<String>(field.value);
+    }
+    if (localValue.present) {
+      map['local_value'] = Variable<String>(localValue.value);
+    }
+    if (remoteValue.present) {
+      map['remote_value'] = Variable<String>(remoteValue.value);
+    }
+    if (remoteHlc.present) {
+      map['remote_hlc'] = Variable<String>(remoteHlc.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SyncConflictsCompanion(')
+          ..write('id: $id, ')
+          ..write('bookId: $bookId, ')
+          ..write('field: $field, ')
+          ..write('localValue: $localValue, ')
+          ..write('remoteValue: $remoteValue, ')
+          ..write('remoteHlc: $remoteHlc')
           ..write(')'))
         .toString();
   }
@@ -1799,6 +2821,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $BookGenresTable bookGenres = $BookGenresTable(this);
   late final $ChangeLogTable changeLog = $ChangeLogTable(this);
+  late final $SyncMetaTable syncMeta = $SyncMetaTable(this);
+  late final $FieldClocksTable fieldClocks = $FieldClocksTable(this);
+  late final $SyncConflictsTable syncConflicts = $SyncConflictsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1808,6 +2833,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     bookIdentifiers,
     bookGenres,
     changeLog,
+    syncMeta,
+    fieldClocks,
+    syncConflicts,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -3003,6 +4031,9 @@ typedef $$ChangeLogTableCreateCompanionBuilder = ChangeLogCompanion Function({
   required String field,
   Value<String?> value,
   required DateTime at,
+  Value<String?> hlc,
+  Value<String?> device,
+  Value<bool> pushed,
 });
 typedef $$ChangeLogTableUpdateCompanionBuilder = ChangeLogCompanion Function({
   Value<int> seq,
@@ -3010,6 +4041,9 @@ typedef $$ChangeLogTableUpdateCompanionBuilder = ChangeLogCompanion Function({
   Value<String> field,
   Value<String?> value,
   Value<DateTime> at,
+  Value<String?> hlc,
+  Value<String?> device,
+  Value<bool> pushed,
 });
 
 class $$ChangeLogTableFilterComposer
@@ -3043,6 +4077,21 @@ class $$ChangeLogTableFilterComposer
 
   ColumnFilters<DateTime> get at => $composableBuilder(
     column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get device => $composableBuilder(
+    column: $table.device,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get pushed => $composableBuilder(
+    column: $table.pushed,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3080,6 +4129,21 @@ class $$ChangeLogTableOrderingComposer
     column: $table.at,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get device => $composableBuilder(
+    column: $table.device,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get pushed => $composableBuilder(
+    column: $table.pushed,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$ChangeLogTableAnnotationComposer
@@ -3105,6 +4169,15 @@ class $$ChangeLogTableAnnotationComposer
 
   GeneratedColumn<DateTime> get at =>
       $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+
+  GeneratedColumn<String> get device =>
+      $composableBuilder(column: $table.device, builder: (column) => column);
+
+  GeneratedColumn<bool> get pushed =>
+      $composableBuilder(column: $table.pushed, builder: (column) => column);
 }
 
 class $$ChangeLogTableTableManager
@@ -3143,12 +4216,18 @@ class $$ChangeLogTableTableManager
                 Value<String> field = const Value.absent(),
                 Value<String?> value = const Value.absent(),
                 Value<DateTime> at = const Value.absent(),
+                Value<String?> hlc = const Value.absent(),
+                Value<String?> device = const Value.absent(),
+                Value<bool> pushed = const Value.absent(),
               }) => ChangeLogCompanion(
                 seq: seq,
                 bookId: bookId,
                 field: field,
                 value: value,
                 at: at,
+                hlc: hlc,
+                device: device,
+                pushed: pushed,
               ),
           createCompanionCallback:
               ({
@@ -3157,12 +4236,18 @@ class $$ChangeLogTableTableManager
                 required String field,
                 Value<String?> value = const Value.absent(),
                 required DateTime at,
+                Value<String?> hlc = const Value.absent(),
+                Value<String?> device = const Value.absent(),
+                Value<bool> pushed = const Value.absent(),
               }) => ChangeLogCompanion.insert(
                 seq: seq,
                 bookId: bookId,
                 field: field,
                 value: value,
                 at: at,
+                hlc: hlc,
+                device: device,
+                pushed: pushed,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -3198,6 +4283,543 @@ typedef $$ChangeLogTableProcessedTableManager =
       ChangeLogData,
       PrefetchHooks Function()
     >;
+typedef $$SyncMetaTableCreateCompanionBuilder = SyncMetaCompanion Function({
+  required String key,
+  required String value,
+  Value<int> rowid,
+});
+typedef $$SyncMetaTableUpdateCompanionBuilder = SyncMetaCompanion Function({
+  Value<String> key,
+  Value<String> value,
+  Value<int> rowid,
+});
+
+class $$SyncMetaTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncMetaTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get key => $composableBuilder(
+    column: $table.key,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncMetaTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncMetaTable> {
+  $$SyncMetaTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get key =>
+      $composableBuilder(column: $table.key, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+}
+
+class $$SyncMetaTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncMetaTable,
+          SyncMetaData,
+          $$SyncMetaTableFilterComposer,
+          $$SyncMetaTableOrderingComposer,
+          $$SyncMetaTableAnnotationComposer,
+          $$SyncMetaTableCreateCompanionBuilder,
+          $$SyncMetaTableUpdateCompanionBuilder,
+          (
+            SyncMetaData,
+            BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
+          ),
+          SyncMetaData,
+          PrefetchHooks Function()
+        > {
+  $$SyncMetaTableTableManager(_$AppDatabase db, $SyncMetaTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncMetaTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncMetaTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncMetaTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> key = const Value.absent(),
+            Value<String> value = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) => SyncMetaCompanion(key: key, value: value, rowid: rowid),
+          createCompanionCallback: ({
+            required String key,
+            required String value,
+            Value<int> rowid = const Value.absent(),
+          }) => SyncMetaCompanion.insert(key: key, value: value, rowid: rowid),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyncMetaTable, SyncMetaData>(table),
+                  BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncMetaTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncMetaTable,
+      SyncMetaData,
+      $$SyncMetaTableFilterComposer,
+      $$SyncMetaTableOrderingComposer,
+      $$SyncMetaTableAnnotationComposer,
+      $$SyncMetaTableCreateCompanionBuilder,
+      $$SyncMetaTableUpdateCompanionBuilder,
+      (
+        SyncMetaData,
+        BaseReferences<_$AppDatabase, $SyncMetaTable, SyncMetaData>,
+      ),
+      SyncMetaData,
+      PrefetchHooks Function()
+    >;
+typedef $$FieldClocksTableCreateCompanionBuilder =
+    FieldClocksCompanion Function({
+      required String bookId,
+      required String field,
+      required String hlc,
+      Value<int> rowid,
+    });
+typedef $$FieldClocksTableUpdateCompanionBuilder =
+    FieldClocksCompanion Function({
+      Value<String> bookId,
+      Value<String> field,
+      Value<String> hlc,
+      Value<int> rowid,
+    });
+
+class $$FieldClocksTableFilterComposer
+    extends Composer<_$AppDatabase, $FieldClocksTable> {
+  $$FieldClocksTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get bookId => $composableBuilder(
+    column: $table.bookId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get field => $composableBuilder(
+    column: $table.field,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$FieldClocksTableOrderingComposer
+    extends Composer<_$AppDatabase, $FieldClocksTable> {
+  $$FieldClocksTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get bookId => $composableBuilder(
+    column: $table.bookId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get field => $composableBuilder(
+    column: $table.field,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get hlc => $composableBuilder(
+    column: $table.hlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$FieldClocksTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FieldClocksTable> {
+  $$FieldClocksTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get bookId =>
+      $composableBuilder(column: $table.bookId, builder: (column) => column);
+
+  GeneratedColumn<String> get field =>
+      $composableBuilder(column: $table.field, builder: (column) => column);
+
+  GeneratedColumn<String> get hlc =>
+      $composableBuilder(column: $table.hlc, builder: (column) => column);
+}
+
+class $$FieldClocksTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $FieldClocksTable,
+          FieldClock,
+          $$FieldClocksTableFilterComposer,
+          $$FieldClocksTableOrderingComposer,
+          $$FieldClocksTableAnnotationComposer,
+          $$FieldClocksTableCreateCompanionBuilder,
+          $$FieldClocksTableUpdateCompanionBuilder,
+          (
+            FieldClock,
+            BaseReferences<_$AppDatabase, $FieldClocksTable, FieldClock>,
+          ),
+          FieldClock,
+          PrefetchHooks Function()
+        > {
+  $$FieldClocksTableTableManager(_$AppDatabase db, $FieldClocksTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FieldClocksTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FieldClocksTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FieldClocksTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> bookId = const Value.absent(),
+                Value<String> field = const Value.absent(),
+                Value<String> hlc = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => FieldClocksCompanion(
+                bookId: bookId,
+                field: field,
+                hlc: hlc,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String bookId,
+                required String field,
+                required String hlc,
+                Value<int> rowid = const Value.absent(),
+              }) => FieldClocksCompanion.insert(
+                bookId: bookId,
+                field: field,
+                hlc: hlc,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$FieldClocksTable, FieldClock>(table),
+                  BaseReferences<_$AppDatabase, $FieldClocksTable, FieldClock>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$FieldClocksTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $FieldClocksTable,
+      FieldClock,
+      $$FieldClocksTableFilterComposer,
+      $$FieldClocksTableOrderingComposer,
+      $$FieldClocksTableAnnotationComposer,
+      $$FieldClocksTableCreateCompanionBuilder,
+      $$FieldClocksTableUpdateCompanionBuilder,
+      (
+        FieldClock,
+        BaseReferences<_$AppDatabase, $FieldClocksTable, FieldClock>,
+      ),
+      FieldClock,
+      PrefetchHooks Function()
+    >;
+typedef $$SyncConflictsTableCreateCompanionBuilder =
+    SyncConflictsCompanion Function({
+      Value<int> id,
+      required String bookId,
+      required String field,
+      Value<String?> localValue,
+      Value<String?> remoteValue,
+      required String remoteHlc,
+    });
+typedef $$SyncConflictsTableUpdateCompanionBuilder =
+    SyncConflictsCompanion Function({
+      Value<int> id,
+      Value<String> bookId,
+      Value<String> field,
+      Value<String?> localValue,
+      Value<String?> remoteValue,
+      Value<String> remoteHlc,
+    });
+
+class $$SyncConflictsTableFilterComposer
+    extends Composer<_$AppDatabase, $SyncConflictsTable> {
+  $$SyncConflictsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get bookId => $composableBuilder(
+    column: $table.bookId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get field => $composableBuilder(
+    column: $table.field,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localValue => $composableBuilder(
+    column: $table.localValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteValue => $composableBuilder(
+    column: $table.remoteValue,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get remoteHlc => $composableBuilder(
+    column: $table.remoteHlc,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SyncConflictsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SyncConflictsTable> {
+  $$SyncConflictsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get bookId => $composableBuilder(
+    column: $table.bookId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get field => $composableBuilder(
+    column: $table.field,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get localValue => $composableBuilder(
+    column: $table.localValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteValue => $composableBuilder(
+    column: $table.remoteValue,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get remoteHlc => $composableBuilder(
+    column: $table.remoteHlc,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SyncConflictsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SyncConflictsTable> {
+  $$SyncConflictsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get bookId =>
+      $composableBuilder(column: $table.bookId, builder: (column) => column);
+
+  GeneratedColumn<String> get field =>
+      $composableBuilder(column: $table.field, builder: (column) => column);
+
+  GeneratedColumn<String> get localValue => $composableBuilder(
+    column: $table.localValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteValue => $composableBuilder(
+    column: $table.remoteValue,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get remoteHlc =>
+      $composableBuilder(column: $table.remoteHlc, builder: (column) => column);
+}
+
+class $$SyncConflictsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SyncConflictsTable,
+          SyncConflict,
+          $$SyncConflictsTableFilterComposer,
+          $$SyncConflictsTableOrderingComposer,
+          $$SyncConflictsTableAnnotationComposer,
+          $$SyncConflictsTableCreateCompanionBuilder,
+          $$SyncConflictsTableUpdateCompanionBuilder,
+          (
+            SyncConflict,
+            BaseReferences<_$AppDatabase, $SyncConflictsTable, SyncConflict>,
+          ),
+          SyncConflict,
+          PrefetchHooks Function()
+        > {
+  $$SyncConflictsTableTableManager(_$AppDatabase db, $SyncConflictsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SyncConflictsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SyncConflictsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SyncConflictsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> bookId = const Value.absent(),
+                Value<String> field = const Value.absent(),
+                Value<String?> localValue = const Value.absent(),
+                Value<String?> remoteValue = const Value.absent(),
+                Value<String> remoteHlc = const Value.absent(),
+              }) => SyncConflictsCompanion(
+                id: id,
+                bookId: bookId,
+                field: field,
+                localValue: localValue,
+                remoteValue: remoteValue,
+                remoteHlc: remoteHlc,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String bookId,
+                required String field,
+                Value<String?> localValue = const Value.absent(),
+                Value<String?> remoteValue = const Value.absent(),
+                required String remoteHlc,
+              }) => SyncConflictsCompanion.insert(
+                id: id,
+                bookId: bookId,
+                field: field,
+                localValue: localValue,
+                remoteValue: remoteValue,
+                remoteHlc: remoteHlc,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SyncConflictsTable, SyncConflict>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SyncConflictsTable,
+                    SyncConflict
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SyncConflictsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SyncConflictsTable,
+      SyncConflict,
+      $$SyncConflictsTableFilterComposer,
+      $$SyncConflictsTableOrderingComposer,
+      $$SyncConflictsTableAnnotationComposer,
+      $$SyncConflictsTableCreateCompanionBuilder,
+      $$SyncConflictsTableUpdateCompanionBuilder,
+      (
+        SyncConflict,
+        BaseReferences<_$AppDatabase, $SyncConflictsTable, SyncConflict>,
+      ),
+      SyncConflict,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3210,4 +4832,10 @@ class $AppDatabaseManager {
       $$BookGenresTableTableManager(_db, _db.bookGenres);
   $$ChangeLogTableTableManager get changeLog =>
       $$ChangeLogTableTableManager(_db, _db.changeLog);
+  $$SyncMetaTableTableManager get syncMeta =>
+      $$SyncMetaTableTableManager(_db, _db.syncMeta);
+  $$FieldClocksTableTableManager get fieldClocks =>
+      $$FieldClocksTableTableManager(_db, _db.fieldClocks);
+  $$SyncConflictsTableTableManager get syncConflicts =>
+      $$SyncConflictsTableTableManager(_db, _db.syncConflicts);
 }

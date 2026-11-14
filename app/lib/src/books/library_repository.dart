@@ -3,9 +3,13 @@
 library;
 
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:drift/drift.dart';
 import 'package:uuid/uuid.dart';
+
+import '../backup/backup_format.dart';
+import '../sync/hlc.dart';
 
 import '../db/database.dart';
 import 'genres.dart';
@@ -86,7 +90,11 @@ class LibraryRepository {
         return (await _withDetails([r])).single;
       });
 
-  Future<LibraryBook?> getBook(String id) => watchBook(id).first;
+  /// One read, not a live query (safe inside transactions and widget tests).
+  Future<LibraryBook?> getBook(String id) async {
+    final r = await (db.select(db.books)..where((b) => b.id.equals(id))).getSingleOrNull();
+    return r == null ? null : (await _withDetails([r])).single;
+  }
 
   Future<List<LibraryBook>> _withDetails(List<BookRow> rows) async {
     if (rows.isEmpty) return const [];
@@ -154,13 +162,116 @@ class LibraryRepository {
 
   // ---------- Writing ----------
 
-  Future<void> _log(String bookId, String field, Object? value) =>
-      db.into(db.changeLog).insert(ChangeLogCompanion.insert(
-            bookId: bookId,
-            field: field,
-            value: Value(value == null ? null : jsonEncode(value)),
-            at: _clock(),
-          ));
+  // ---------- Sync hooks (step 3b) ----------
+
+  Future<Hlc>? _hlcFuture;
+
+  /// This device's clock. Its id is made once and kept in the database.
+  Future<Hlc> hlc() => _hlcFuture ??= () async {
+        var id = await getMeta('device');
+        if (id == null) {
+          id = base64Url.encode(List<int>.generate(12, (_) => _rng.nextInt(256))).replaceAll('=', '');
+          await setMeta('device', id);
+        }
+        return Hlc(id, clock: _clock);
+      }();
+
+  static final _rng = Random.secure();
+
+  Future<String?> getMeta(String key) async =>
+      (await (db.select(db.syncMeta)..where((m) => m.key.equals(key))).getSingleOrNull())?.value;
+
+  Future<void> setMeta(String key, String value) =>
+      db.into(db.syncMeta).insertOnConflictUpdate(SyncMetaCompanion.insert(key: key, value: value));
+
+  /// Fields whose newest change is tracked; `created` and `deleted` count as the whole book (`*`).
+  static String clockKey(String field) => field == 'created' || field == 'deleted' ? '*' : field;
+
+  Future<void> setFieldClock(String bookId, String field, String hlc) =>
+      db.into(db.fieldClocks).insertOnConflictUpdate(FieldClocksCompanion.insert(bookId: bookId, field: clockKey(field), hlc: hlc));
+
+  Future<String?> fieldClock(String bookId, String field) async => (await (db.select(db.fieldClocks)
+            ..where((c) => c.bookId.equals(bookId) & c.field.equals(clockKey(field))))
+          .getSingleOrNull())
+      ?.hlc;
+
+  Future<void> _log(String bookId, String field, Object? value) async {
+    final clock = await hlc();
+    final stamp = clock.next();
+    await db.into(db.changeLog).insert(ChangeLogCompanion.insert(
+          bookId: bookId,
+          field: field,
+          value: Value(value == null ? null : jsonEncode(value)),
+          at: _clock(),
+          hlc: Value(stamp),
+          device: Value(clock.device),
+        ));
+    if (bookId != '*') await setFieldClock(bookId, field, stamp);
+  }
+
+  Future<Map<String, Object?>?> _snapshot(String id) async {
+    final b = await getBook(id);
+    return b == null ? null : bookToJson(b);
+  }
+
+  /// Log the whole book as it is now (first upload, or "keep it" after a deletion elsewhere).
+  Future<void> logSnapshot(String id) async {
+    final s = await _snapshot(id);
+    if (s != null) await _log(id, 'created', s);
+  }
+
+  /// Applying changes from another device: plain writes, nothing logged.
+  Future<void> insertSnapshot(LibraryBook b) => db.transaction(() async {
+        await db.into(db.books).insertOnConflictUpdate(b.row);
+        await (db.delete(db.bookIdentifiers)..where((i) => i.bookId.equals(b.id))).go();
+        await (db.delete(db.bookGenres)..where((g) => g.bookId.equals(b.id))).go();
+        for (final i in b.identifiers.toSet()) {
+          await db.into(db.bookIdentifiers).insert(BookIdentifiersCompanion.insert(bookId: b.id, scheme: i.scheme, value: i.value),
+              mode: InsertMode.insertOrIgnore);
+        }
+        for (final g in b.genres.toSet()) {
+          await db.into(db.bookGenres).insert(BookGenresCompanion.insert(bookId: b.id, name: g), mode: InsertMode.insertOrIgnore);
+        }
+      });
+
+  Future<void> deleteQuietly(String id) => (db.delete(db.books)..where((b) => b.id.equals(id))).go();
+
+  /// One field from another device (names as in the change log; `photo` sets [BookRow.ownCover]).
+  Future<void> applyField(String id, String field, Object? v) => db.transaction(() async {
+        DateTime? d(Object? o) => o == null ? null : DateTime.parse(o as String);
+        final c = switch (field) {
+          'title' => v == null ? null : BooksCompanion(title: Value(v as String)),
+          'authors' => BooksCompanion(authors: Value(((v as List?) ?? const []).cast<String>())),
+          'isbn13' => BooksCompanion(isbn13: Value(v as String?)),
+          'publisher' => BooksCompanion(publisher: Value(v as String?)),
+          'publishedDate' => BooksCompanion(publishedDate: Value(v as String?)),
+          'format' => v == null ? null : BooksCompanion(format: Value(v as String)),
+          'purchasedOn' => BooksCompanion(purchasedOn: Value(d(v))),
+          'finishedOn' => BooksCompanion(finishedOn: Value(d(v))),
+          'rating' => BooksCompanion(rating: Value(v as int?)),
+          'notes' => BooksCompanion(notes: Value(v as String?)),
+          'status' => BooksCompanion(status: Value(v as String?)),
+          'coverRef' => BooksCompanion(coverRef: Value(v as String?)),
+          'photo' => BooksCompanion(ownCover: Value(v != null)),
+          _ => null,
+        };
+        if (c != null) {
+          await (db.update(db.books)..where((b) => b.id.equals(id))).write(c.copyWith(updatedAt: Value(_clock())));
+        }
+        if (field == 'isbn13') {
+          await (db.delete(db.bookIdentifiers)..where((i) => i.bookId.equals(id) & i.scheme.equals(Schemes.isbn13))).go();
+          if (v != null) {
+            await db.into(db.bookIdentifiers).insert(BookIdentifiersCompanion.insert(bookId: id, scheme: Schemes.isbn13, value: v as String),
+                mode: InsertMode.insertOrIgnore);
+          }
+        }
+        if (field == 'genres') {
+          await (db.delete(db.bookGenres)..where((g) => g.bookId.equals(id))).go();
+          for (final g in ((v as List?) ?? const []).cast<String>().toSet()) {
+            await db.into(db.bookGenres).insert(BookGenresCompanion.insert(bookId: id, name: g), mode: InsertMode.insertOrIgnore);
+          }
+        }
+      });
 
   /// Add a book found by a source. Genres are suggested from its subjects.
   Future<String> addFromCandidate(Candidate c, OwnershipFormat format) => _insert(
@@ -232,18 +343,8 @@ class LibraryRepository {
       for (final g in genres.toSet()) {
         await db.into(db.bookGenres).insert(BookGenresCompanion.insert(bookId: id, name: g), mode: InsertMode.insertOrIgnore);
       }
-      await _log(id, 'created', {
-        'title': title,
-        'authors': authors,
-        'isbn13': isbn13,
-        'publisher': publisher,
-        'publishedDate': publishedDate,
-        'edition': edition,
-        'format': format.name,
-        'coverRef': coverRef,
-        'identifiers': [for (final i in identifiers) '$i'],
-        'genres': genres,
-      });
+      // Inside the transaction, so nothing else can queue between the insert and its log entry.
+      await logSnapshot(id);
     });
     return id;
   }
@@ -293,7 +394,12 @@ class LibraryRepository {
         }
       }
       for (final e in values.entries) {
-        await _log(id, e.key, e.value);
+        if (e.key == 'ownCover') {
+          // Her own photo travels as an attachment named by a fresh id.
+          await _log(id, 'photo', e.value == true ? _uuid.v4() : null);
+        } else {
+          await _log(id, e.key, e.value);
+        }
       }
     });
   }
@@ -327,6 +433,7 @@ class LibraryRepository {
 
   /// Replace the whole library with [books] (restoring a backup). Ids and dates are kept.
   Future<void> replaceAll(List<LibraryBook> books) => db.transaction(() async {
+        final before = await db.select(db.books).get();
         await db.delete(db.bookGenres).go();
         await db.delete(db.bookIdentifiers).go();
         await db.delete(db.books).go();
@@ -343,11 +450,23 @@ class LibraryRepository {
           }
         }
         await _log('*', 'restored', {'books': books.length});
+        // Other devices hear of a restore as ordinary changes.
+        final kept = {for (final b in books) b.id};
+        for (final row in before.where((row) => !kept.contains(row.id))) {
+          await _log(row.id, 'deleted', null);
+        }
+        for (final b in books) {
+          await _log(b.id, 'created', bookToJson(b));
+        }
       });
 
   /// Permanently remove a book (no recycle bin, a product rule).
-  Future<void> delete(String id) => db.transaction(() async {
+  /// The book's last state is kept in the change log, so a sync conflict can bring it back.
+  Future<void> delete(String id) async {
+    final snapshot = await _snapshot(id);
+    await db.transaction(() async {
         await (db.delete(db.books)..where((b) => b.id.equals(id))).go();
-        await _log(id, 'deleted', null);
+        await _log(id, 'deleted', snapshot);
       });
+  }
 }
