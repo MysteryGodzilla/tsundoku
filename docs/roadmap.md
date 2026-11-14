@@ -307,6 +307,12 @@ The core job, with no accounts and no server.
 - Server backups and restore; the admin view (counts, suspend, health) with no library access.
 - An automated privacy test that proves the server holds nothing readable.
 - **Done when:** her phone and a second device stay in step, including after offline edits.
+- **Plan 2026-11-14:** design in [phase3-design.md](phase3-design.md) (Bitwarden-style keys,
+  AES-256-GCM events, field-level merge). Built in three steps: **3a** server, accounts,
+  authenticator, app lock; **3b** encrypted sync with conflict questions; **3c** passkey recovery,
+  password reset, change email, server backups, command-line admin, install guide. Built and
+  tested on one computer with simulated devices; where the server runs for real waits for the
+  network review.
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.
@@ -388,3 +394,7 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Drive/OneDrive can't be backup folders (their apps don't share folders with other apps): automatic backups stay in a phone folder; "Save a copy to…" and "Restore from a file…" cover Drive until Phase 3 | Mystery (tested) |
 | 2026-11-14 | Export offers Save to… (Downloads, Drive) as well as Share… | Mystery |
 | 2026-11-14 | A manual backup copy can be shared to Drive or OneDrive (their share entries are the only way in); automatic off-phone copies wait for Phase 3 | Mystery (tested) |
+| 2026-11-14 | Phase 3 is built and tested on this computer first; where the server runs is decided after the network review | Mystery |
+| 2026-11-14 | Encryption: Bitwarden model (Argon2id master key; login key to the server; unlock key wraps a random library key; AES-256-GCM) | Mystery |
+| 2026-11-14 | Server admin is a command-line tool (no admin web page) | Mystery |
+| 2026-11-14 | Phase 3 in three steps: 3a accounts and app lock, 3b sync, 3c recovery, admin and backups | Mystery |
