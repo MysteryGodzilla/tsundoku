@@ -68,13 +68,16 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   restore from a backup. Old backups expire on their own.
 - Export your whole library to a spreadsheet (Excel-compatible), with everything in it. Export
   only; no import.
-- Accounts: email and password, password reset, change of email (the new address is verified
-  first), lock after 1 day without use (opens with fingerprint, face or phone PIN), full log out
+- Accounts: email address (as the login name) and password. Password reset with a 6-digit code
+  from an authenticator app, no email needed. A new phone gets the library back with a
+  fingerprint tap (a passkey saved in her Google account); nothing to write down. Email is
+  optional: a server works without sending mail, and if its owner sets mail up, address
+  verification switches on. Lock after 1 day without use (opens with fingerprint, face or phone PIN), full log out
   only after a long time unused (30 days proposed). No "sign in with Google".
 - Delete your account and library from inside the app, after a clear warning. Copies in backups
   expire with the backup retention, and the app says so plainly.
-- Messages only when they matter: verifying your email, password resets, security alerts and
-  persistent sync problems. No reminders, nudges, challenges or promotions.
+- Messages only when they matter: security alerts and persistent sync problems, shown inside the
+  app (and by email only on servers that have mail set up). No reminders, nudges, challenges or promotions.
 - Open source. Anyone can download, run and modify it: offline only on their own device, synced
   through their own server (for a family, or one person hosting friends), or (later) a public
   hosted service. Each user on a server has their own private library.
@@ -103,11 +106,19 @@ at once:
 - **Deleting an account destroys its key**, so even copies still sitting in backups become
   unreadable straight away, ahead of the retention window.
 
-One consequence needs the product owner's say (see [question Q2](#5-questions-for-the-product-owner)):
-if the server can't read a library, it can't rescue one either. Forgetting the password is fine
-while any signed-in device still has the library (it re-encrypts and re-uploads after a reset).
-Forgetting the password **and** losing every device would lose the synced copy, unless a recovery
-code was saved somewhere safe. The local backups and spreadsheet export are the other safety nets.
+If the server can't read a library, it can't rescue one either, so recovery is split in two
+(decided 2026-11-14):
+- **Getting into the account** (forgotten password): a 6-digit code from an authenticator app
+  (TOTP, set up at sign-up). This proves who she is; it can't unlock the library, because the server
+  knows the authenticator's secret and so would anyone running it. After a reset, any device that
+  still has the library re-encrypts and re-uploads it.
+- **Unlocking the library on a new phone** (every device lost): a passkey saved in her Google
+  account. The passkey's PRF extension gives the app a secret that only her fingerprint can
+  release, which unwraps the library key. Google syncs the passkey end-to-end encrypted, so it
+  arrives on a new phone by itself.
+- **Fallback:** if the Phase 0 test shows passkeys with PRF don't work on her phone, the app shows a
+  one-time recovery code at sign-up instead (her original Q2 answer). The local backups and
+  spreadsheet export stay as further safety nets.
 
 ### 3.2 App platform
 *Recommended:* **React Native with Expo, in TypeScript.** One codebase gives a true native Android
@@ -139,9 +150,13 @@ written in TypeScript too, so the whole project is one language.
   storing encrypted events, backups and admin counts.
 - Passwords are never stored in a form the server can use to read data: login and encryption use
   separate keys derived from the password on the device (an OPAQUE- or SRP-style login, or Argon2id
-  hashing on the server for the login key).
-- Email for verification and resets goes through whatever SMTP service the server's owner sets up.
-  Self-hosters bring their own; the public hosted service needs a provider (cost question, deferred).
+  hashing on the server for the login key). The library key is wrapped twice: once by the password
+  key, once by the passkey's PRF secret.
+- Password reset by TOTP (RFC 6238, works with any authenticator app). Account checks are
+  rate-limited.
+- Email is optional. With no SMTP settings the server sends no mail and alerts stay in the app. If
+  the owner adds SMTP settings, address and email-change verification switch on. The public hosted
+  service would need a mail provider (cost question, deferred).
 - "Sync through Google Drive or Dropbox" (from the brief) can come later, using the same encrypted
   events written to a folder in the user's own cloud drive, for people who want sync without
   running a server.
@@ -175,6 +190,9 @@ until she's happy with the current one.
   product owner).
 - Spike, thrown away afterwards: an Expo app on her Android phone that scans a barcode, looks it up
   on Open Library, saves it to SQLite and finds it offline. The same on a laptop webcam.
+- Passkey test on her phone: create a passkey in her Google account from the Expo app, read its PRF
+  secret, and get the same secret back after reinstalling the app. If this fails, use the recovery
+  code fallback.
 - Check Open Library's limits, terms and Kindle coverage; write the findings in `docs/`.
 - Mock-ups of the library grid and search in two or three soft accent colours, light and dark, for
   the product owner to pick from.
@@ -197,7 +215,8 @@ The core job, with no accounts and no server.
 - **Done when:** she can lose her phone and get her library back from a backup.
 
 ### Phase 3: accounts and sync (self-hosted server)
-- The server: accounts, email verification, recovery code at sign-up, password reset, change email,
+- The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
+  fallback), optional email verification when mail is set up, change email,
   app lock (fingerprint, face or PIN after 1 day), long-inactivity logout, delete account.
 - End-to-end encrypted sync between devices; conflict questions; the unsynced-changes list.
 - Server backups and restore; the admin view (counts, suspend, health) with no library access.
@@ -222,9 +241,9 @@ The core job, with no accounts and no server.
 Plain-language questions about how the app should behave. Ask one at a time; "skip" leaves it open.
 
 - ~~**Q1. Name.**~~ Answered 2026-11-14: "Tsundoku" is a working title; the real name is picked before the public release.
-- ~~**Q2. Forgotten password and lost phone.**~~ Answered 2026-11-14: a recovery code. At sign-up
-  the app shows a code once and asks her to print it or keep it somewhere safe; with it she can always
-  get her library back.
+- ~~**Q2. Forgotten password and lost phone.**~~ Answered 2026-11-14: a recovery code; then changed
+  the same day to an authenticator app for password resets plus a Google-saved passkey (fingerprint)
+  to unlock the library on a new phone, with the code as a fallback. See section 3.1.
 - ~~**Q3. Logging out.**~~ Answered 2026-11-14: the app **locks** after 1 day without use and opens
   with her fingerprint, face or phone PIN. A full logout (email and password again) only after a long
   time unused: 30 days proposed.
@@ -235,7 +254,7 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
   open: show her mock-ups to choose from in Phase 0.
 
 ## 6. Open (deferred in the brief)
-- Hosting provider and costs for a public service; email provider.
+- Hosting provider and costs for a public service; email provider (only the hosted service needs one).
 - Exact backup schedule options.
 - Branding and visual identity.
 - Independent security review of the privacy design.
@@ -253,3 +272,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Q5: neutral palette with one soft accent colour for buttons and the ALREADY OWNED label; the colour is chosen from mock-ups | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
 | 2026-11-14 | Licence: MIT | Mystery |
+| 2026-11-14 | Recovery: authenticator app (TOTP) for password resets; a passkey saved in her Google account unlocks the library on a new phone; a written recovery code only if passkeys fail the Phase 0 test. Replaces Q2's recovery code | Mystery |
+| 2026-11-14 | Email optional: the email address is the login name; servers work without mail; alerts in the app; verification emails only when mail is set up. Replaces the brief's required email verification and reset emails | Mystery |
