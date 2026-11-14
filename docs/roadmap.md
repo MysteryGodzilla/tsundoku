@@ -268,6 +268,10 @@ The core job, with no accounts and no server.
   request, done in 0.1.1: the status bubble and Kindle/Physical icon on grid covers. Her next three,
   done in 0.1.2: a Sunflower accent, Reading pinned to the top, and a "Finished reading" date
   (the database upgrades in place; tested).
+- **Phase 1 done 2026-11-14.** Tested in flight mode: scanning a book already in the library showed
+  ALREADY OWNED, and scanning books not in it showed they weren't owned, all with no internet.
+  Still to do from the mock-ups: the Inter font. Possible polish: when offline, say "Not in your
+  library" plainly before "couldn't look it up".
 
 ### Phase 2: organise and protect
 - Filters (author, genre, format, status, rating) and sorting (title, author, date added, rating).
@@ -352,3 +356,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Fifth accent: Sunflower (light mode uses a deeper gold wherever the accent is text, so it stays readable) | product owner |
 | 2026-11-14 | Books she is Reading are pinned to the top of the library until filters arrive | product owner |
 | 2026-11-14 | Optional "Finished reading" date on each book (useful for yearly stats later) | product owner |
+| 2026-11-14 | Phase 1 done: the owned check works in flight mode on her phone | Mystery (tested) |
