@@ -196,7 +196,16 @@ until she's happy with the current one.
   fallback before settling for the recovery code.
 - Check Open Library's limits, terms and Kindle coverage; write the findings in `docs/`.
 - Mock-ups of the library grid and search in two or three soft accent colours, light and dark, for
-  the product owner to pick from.
+  the product owner to pick from. Made 2026-11-14 in three accents (sage, dusty blue, blush), each
+  with light and dark; waiting for her pick. Palette candidates (every text pairing at least 4.5:1):
+
+  | Accent | Light mode accent / tint | Dark mode accent / tint |
+  |---|---|---|
+  | Sage | `#4F6F58` / `#E3ECE5` | `#9DBFA5` / `#22302A` |
+  | Dusty blue | `#4E6A85` / `#E2E9F0` | `#9DB5CC` / `#1F2A35` |
+  | Blush | `#9A5B66` / `#F4E4E6` | `#E0AEB6` / `#3A262A` |
+
+  Neutrals: light `#F7F6F3` background, `#1C1C1A` text; dark `#141414` background, `#EDEDEA` text.
 - **Done when:** the stack is in the decisions log, and the spike worked on her phone.
 
 ### Phase 1: the owned check, on her phone (offline only)
