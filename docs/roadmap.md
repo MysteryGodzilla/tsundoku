@@ -69,7 +69,8 @@ These are settled. A technical choice that breaks one of them is the wrong choic
 - Export your whole library to a spreadsheet (Excel-compatible), with everything in it. Export
   only; no import.
 - Accounts: email and password, password reset, change of email (the new address is verified
-  first), log out after a period of inactivity. No "sign in with Google".
+  first), lock after 1 day without use (opens with fingerprint, face or phone PIN), full log out
+  only after a long time unused (30 days proposed). No "sign in with Google".
 - Delete your account and library from inside the app, after a clear warning. Copies in backups
   expire with the backup retention, and the app says so plainly.
 - Messages only when they matter: verifying your email, password resets, security alerts and
@@ -195,8 +196,8 @@ The core job, with no accounts and no server.
 - **Done when:** she can lose her phone and get her library back from a backup.
 
 ### Phase 3: accounts and sync (self-hosted server)
-- The server: accounts, email verification, recovery code at sign-up, password reset, change email, inactivity logout,
-  delete account.
+- The server: accounts, email verification, recovery code at sign-up, password reset, change email,
+  app lock (fingerprint, face or PIN after 1 day), long-inactivity logout, delete account.
 - End-to-end encrypted sync between devices; conflict questions; the unsynced-changes list.
 - Server backups and restore; the admin view (counts, suspend, health) with no library access.
 - An automated privacy test that proves the server holds nothing readable.
@@ -223,9 +224,9 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 - ~~**Q2. Forgotten password and lost phone.**~~ Answered 2026-11-14: a recovery code. At sign-up
   the app shows a code once and asks her to print it or keep it somewhere safe; with it she can always
   get her library back.
-- **Q3. Logging out.** On a phone, being logged out often gets in the way of a quick check in a
-  shop. Would you prefer the app to lock after a while and open with your fingerprint or PIN, or to
-  log you out fully? How long before it locks: 15 minutes, an hour, a day?
+- ~~**Q3. Logging out.**~~ Answered 2026-11-14: the app **locks** after 1 day without use and opens
+  with her fingerprint, face or phone PIN. A full logout (email and password again) only after a long
+  time unused: 30 days proposed.
 - **Q4. Desktop first or later.** Is the phone alone enough to start, with the computer coming in
   Phase 4?
 - **Q5. Look and feel.** Any colours, apps or websites whose look you like, to guide the first
@@ -245,4 +246,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Platform: native Android app first, iPhone later and not a priority, PWA only as a fallback (the brief's platform section supersedes its "platform undecided" list) | product owner |
 | 2026-11-14 | Q1: "Tsundoku" is a working title until a name is chosen before the public release | product owner |
 | 2026-11-14 | Q2: account sign-up gives a one-time recovery code to print or keep safe; it restores the library if the password and every device are lost | product owner |
+| 2026-11-14 | Q3: lock after 1 day without use, unlock with fingerprint, face or phone PIN; full logout only after a long time unused (30 days proposed). Refines the brief's "log out after inactivity" | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
