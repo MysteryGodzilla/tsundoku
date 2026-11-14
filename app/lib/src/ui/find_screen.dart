@@ -71,7 +71,7 @@ class _FindScreenState extends State<FindScreen> {
       if (mine != _seq || !mounted) return;
       setState(() {
         _results = const [];
-        _message = 'Couldn\'t reach Open Library. Check you\'re online.';
+        _message = 'Open Library can\'t be reached.';
         _loading = false;
       });
     }
@@ -106,6 +106,7 @@ class _FindScreenState extends State<FindScreen> {
         if (_message != null) Padding(padding: const EdgeInsets.all(16), child: Text(_message!, style: TextStyle(color: muted))),
         Expanded(
           child: ListView.separated(
+            padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
             itemCount: _results.length + 1,
             separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
             itemBuilder: (context, i) {

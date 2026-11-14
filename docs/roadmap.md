@@ -50,7 +50,8 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   or scanning fails, you can type the ISBN.
 - Filled in from Open Library where possible: title, authors, ISBN, cover, publisher, publication
   date, edition/format, genres.
-- Yours to set: format, date purchased, date finished reading (optional), rating (0 to 5 stars), notes, reading status, genres, and
+- Yours to set: format, date purchased, date finished (optional; shown once a book is Read as
+  "Finished reading", or DNF as "Stopped reading"; kept if the status changes back), rating (0 to 5 stars), notes, reading status, genres, and
   your own cover photo if the one found is missing or wrong.
 - Reading status is optional and blank by default: TBR, Reading, Read or DNF. Nothing else, and
   it's never set automatically.
@@ -257,21 +258,21 @@ The core job, with no accounts and no server.
 - Light and dark modes. Cover cache that can be cleared.
 - **Done when:** she can catalogue real books and use it in a shop with flight mode on. Install by
   a direct APK (no app store needed yet).
-- **First version built 2026-11-14** (in `app/`), waiting for her to try it on her phone. Done:
+- **First version built 2026-11-14** (in `app/`). Done:
   scan, typed ISBN, Open Library search and hand entry (each confirmed before adding); the cover
   grid; offline search with ALREADY OWNED across editions and formats; book details with reading
   status, rating, purchase date, genres (suggested from Open Library), notes, her own cover photo
   and permanent delete; Settings with the four accents and Light/Dark; saved covers that can be
-  cleared without losing her photos. 9 automated tests. Not yet: the Inter font from the mock-ups
-  (the phone's own font is used for now).
+  cleared without losing her photos.
 - **Her first try, 2026-11-14:** adding, searching, hand entry and notes all work on her phone. Her
   request, done in 0.1.1: the status bubble and Kindle/Physical icon on grid covers. Her next three,
   done in 0.1.2: a Sunflower accent, Reading pinned to the top, and a "Finished reading" date
   (the database upgrades in place; tested).
 - **Phase 1 done 2026-11-14.** Tested in flight mode: scanning a book already in the library showed
   ALREADY OWNED, and scanning books not in it showed they weren't owned, all with no internet.
-  Still to do from the mock-ups: the Inter font. Possible polish: when offline, say "Not in your
-  library" plainly before "couldn't look it up".
+  0.1.3: the finished date only shows for Read or DNF; screens keep clear of Android's navigation
+  buttons; when a lookup fails the app just says "Open Library can't be reached." The phone's own
+  font is used (preferred over the mock-ups' Inter).
 
 ### Phase 2: organise and protect
 - Filters (author, genre, format, status, rating) and sorting (title, author, date added, rating).
@@ -357,3 +358,6 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Books she is Reading are pinned to the top of the library until filters arrive | product owner |
 | 2026-11-14 | Optional "Finished reading" date on each book (useful for yearly stats later) | product owner |
 | 2026-11-14 | Phase 1 done: the owned check works in flight mode on her phone | Mystery (tested) |
+| 2026-11-14 | The finished date shows only when a book is Read ("Finished reading") or DNF ("Stopped reading"); kept, hidden, if the status changes back | product owner |
+| 2026-11-14 | The phone's own font, not Inter | Mystery |
+| 2026-11-14 | No offline indicator; a failed lookup just says "Open Library can't be reached." | Mystery |

@@ -14,6 +14,7 @@ import 'package:tsundoku/src/db/database.dart';
 import 'package:tsundoku/src/settings/appearance.dart';
 import 'package:tsundoku/src/sources/book_source.dart';
 import 'package:tsundoku/src/theme/palette.dart';
+import 'package:tsundoku/src/ui/book_detail_screen.dart';
 
 class _NoSource implements BookSource {
   @override
@@ -80,6 +81,45 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Heather'));
     await _settle(tester);
     expect(services.appearance.accent, Accent.heather);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(db.close);
+    tmp.deleteSync(recursive: true);
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  testWidgets('the finished date shows only for Read ("Finished") or DNF ("Stopped"), and is kept', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+    final lookup = BookLookup([_NoSource()]);
+    final tmp = Directory.systemTemp.createTempSync('detail_test');
+    final services = AppServices(
+      library: LibraryRepository(db),
+      lookup: lookup,
+      covers: CoverStore(lookup, baseDir: () async => tmp),
+      appearance: await AppearanceSettings.load(),
+    );
+    final repo = services.library;
+    final id = (await tester.runAsync(() => repo.addManual(title: 'Carrie', format: OwnershipFormat.physical)))!;
+    await tester.runAsync(() => repo.update(id, const BookChanges(status: ReadingStatus.tbr)));
+    await tester.pumpWidget(AppScope(services: services, child: MaterialApp(home: BookDetailScreen(bookId: id))));
+    await _settle(tester);
+    expect(find.text('FINISHED READING'), findsNothing);
+    expect(find.text('STOPPED READING'), findsNothing);
+
+    await tester.runAsync(() => repo.update(id, BookChanges(status: ReadingStatus.read, finishedOn: DateTime(2026, 11, 1))));
+    await _settle(tester);
+    expect(find.text('FINISHED READING'), findsOneWidget);
+    expect(find.text('1 Nov 2026'), findsOneWidget);
+
+    await tester.runAsync(() => repo.update(id, const BookChanges(status: ReadingStatus.reading)));
+    await _settle(tester);
+    expect(find.text('FINISHED READING'), findsNothing);
+    expect((await tester.runAsync(() => repo.getBook(id)))!.row.finishedOn, DateTime(2026, 11, 1), reason: 'kept while hidden');
+
+    await tester.runAsync(() => repo.update(id, const BookChanges(status: ReadingStatus.dnf)));
+    await _settle(tester);
+    expect(find.text('STOPPED READING'), findsOneWidget);
+    expect(find.text('1 Nov 2026'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(db.close);

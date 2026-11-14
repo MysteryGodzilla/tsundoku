@@ -168,7 +168,7 @@ class _BookFormScreenState extends State<BookFormScreen> {
       ),
       body: Form(
         key: _form,
-        child: ListView(padding: const EdgeInsets.fromLTRB(20, 8, 20, 40), children: [
+        child: ListView(padding: EdgeInsets.fromLTRB(20, 8, 20, 48 + MediaQuery.paddingOf(context).bottom), children: [
           Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
             SizedBox(width: 110, child: cover),
             const SizedBox(width: 16),

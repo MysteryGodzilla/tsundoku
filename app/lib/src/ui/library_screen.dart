@@ -102,7 +102,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 ..._searchResults(context, results)
               else
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                  padding: EdgeInsets.fromLTRB(20, 4, 20, 100 + MediaQuery.paddingOf(context).bottom),
                   sliver: SliverGrid(
                     gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                       maxCrossAxisExtent: 140,
@@ -134,7 +134,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     if (results.isEmpty) {
       return [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 100 + MediaQuery.paddingOf(context).bottom),
           sliver: SliverToBoxAdapter(
             child: Card(
               child: Padding(
@@ -165,7 +165,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
     return [
       SliverPadding(
-        padding: const EdgeInsets.fromLTRB(0, 0, 0, 100),
+        padding: EdgeInsets.fromLTRB(0, 0, 0, 100 + MediaQuery.paddingOf(context).bottom),
         sliver: SliverList.separated(
           itemCount: results.length,
           separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),

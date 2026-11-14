@@ -123,7 +123,7 @@ Future<void> lookupIsbnAndShow(BuildContext context, String isbn13) async {
     found = await services.lookup.lookupIsbn(isbn13);
   } catch (_) {
     messenger.hideCurrentSnackBar();
-    messenger.showSnackBar(const SnackBar(content: Text('Couldn\'t reach Open Library. Check you\'re online and try again, or enter it by hand.')));
+    messenger.showSnackBar(const SnackBar(content: Text('Open Library can\'t be reached.')));
     return;
   }
   messenger.hideCurrentSnackBar();

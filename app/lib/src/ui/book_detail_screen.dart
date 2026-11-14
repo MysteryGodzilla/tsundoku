@@ -55,7 +55,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _pickFinished(LibraryBook b) async {
-    final d = await _pickDate(b.row.finishedOn, 'Date you finished it');
+    final d = await _pickDate(b.row.finishedOn, b.status == ReadingStatus.dnf ? 'Date you stopped' : 'Date you finished it');
     if (d != null) await _repo.update(b.id, BookChanges(finishedOn: d));
   }
 
@@ -178,7 +178,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               itemBuilder: (_) => const [PopupMenuItem(value: 'delete', child: Text('Delete book'))],
             ),
           ]),
-          body: ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 40), children: [
+          body: ListView(padding: EdgeInsets.fromLTRB(20, 0, 20, 48 + MediaQuery.paddingOf(context).bottom), children: [
             Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               BookCover(book: b, width: 120),
               const SizedBox(width: 18),
@@ -209,9 +209,18 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               rating: b.row.rating,
               onChanged: (r) => _repo.update(b.id, r == null ? const BookChanges(clear: {'rating'}) : BookChanges(rating: r)),
             ),
-            heading('Finished reading'),
-            _dateRow(b.row.finishedOn, 'Add the date you finished it', () => _pickFinished(b),
-                () => _repo.update(b.id, const BookChanges(clear: {'finishedOn'})), 'Clear finished date'),
+            // Her choice (2026-11-14): the date only shows once a book is Read or DNF. If the status
+            // changes back, the date is kept (hidden) and returns when it's Read or DNF again.
+            if (b.status == ReadingStatus.read || b.status == ReadingStatus.dnf) ...[
+              heading(b.status == ReadingStatus.read ? 'Finished reading' : 'Stopped reading'),
+              _dateRow(
+                b.row.finishedOn,
+                b.status == ReadingStatus.read ? 'Add the date you finished it' : 'Add the date you stopped',
+                () => _pickFinished(b),
+                () => _repo.update(b.id, const BookChanges(clear: {'finishedOn'})),
+                'Clear date',
+              ),
+            ],
             heading('Purchased'),
             _dateRow(b.row.purchasedOn, 'Add the date you bought it', () => _pickPurchased(b),
                 () => _repo.update(b.id, const BookChanges(clear: {'purchasedOn'})), 'Clear purchase date'),

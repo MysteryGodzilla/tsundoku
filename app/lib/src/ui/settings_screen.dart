@@ -67,7 +67,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           final brightness = Theme.of(context).brightness;
           final effectiveDark = appearance.mode == AppearanceMode.dark ||
               (appearance.mode == AppearanceMode.system && brightness == Brightness.dark);
-          return ListView(padding: const EdgeInsets.fromLTRB(20, 0, 20, 32), children: [
+          return ListView(padding: EdgeInsets.fromLTRB(20, 0, 20, 48 + MediaQuery.paddingOf(context).bottom), children: [
             heading('Appearance'),
             Card(
               child: Padding(
