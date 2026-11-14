@@ -14,3 +14,5 @@ you can check in a few seconds whether you already have one.
 **Status:** planning. Nothing to install yet. See the [roadmap](docs/roadmap.md).
 
 Book information and covers come from [Open Library](https://openlibrary.org).
+
+Licence: [MIT](LICENSE).

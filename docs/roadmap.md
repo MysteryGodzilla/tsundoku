@@ -162,9 +162,8 @@ written in TypeScript too, so the whole project is one language.
 - Export writes an `.xlsx` file (opens in Excel, Google Sheets, LibreOffice) with every field.
 
 ### 3.7 Licence
-*Recommended:* **AGPL-3.0**: anyone may use and modify it, and anyone who runs a modified version
-as a public service must share their changes. MIT is the simpler, more permissive option. To be
-decided by Mystery (it's a technical/legal choice that doesn't change the experience).
+**Decided 2026-11-14: MIT** (see `LICENSE`). Anyone may use, modify and redistribute the code,
+including in their own hosted services, as long as the copyright notice stays.
 
 ## 4. Roadmap
 
@@ -172,7 +171,7 @@ Each phase ends with something the product owner can hold and try. Nothing moves
 until she's happy with the current one.
 
 ### Phase 0: decide and prove (before any real code)
-- Approve the technical choices in section 3 (Mystery) and answer the questions in section 5 (the
+- Approve the technical choices in section 3 (Mystery; licence done: MIT) and answer the questions in section 5 (the
   product owner).
 - Spike, thrown away afterwards: an Expo app on her Android phone that scans a barcode, looks it up
   on Open Library, saves it to SQLite and finds it offline. The same on a laptop webcam.
@@ -210,7 +209,7 @@ The core job, with no accounts and no server.
 - **Done when:** she can check a book on the laptop while shopping online.
 
 ### Phase 5: open-source release
-- Install guides (offline only, self-hosted server), screenshots, licence, Ko-fi link.
+- Install guides (offline only, self-hosted server), screenshots, Ko-fi link.
 - Optional sync through Google Drive or Dropbox for people without a server.
 - Signed Android release (Play Store or F-Droid: a cost and sign-up decision for later).
 
@@ -253,3 +252,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Q4: Android phone first; the computer version follows in Phase 4, after sync | product owner |
 | 2026-11-14 | Q5: neutral palette with one soft accent colour for buttons and the ALREADY OWNED label; the colour is chosen from mock-ups | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
+| 2026-11-14 | Licence: MIT | Mystery |
