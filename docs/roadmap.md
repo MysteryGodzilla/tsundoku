@@ -219,7 +219,7 @@ The core job, with no accounts and no server.
 
 Plain-language questions about how the app should behave. Ask one at a time; "skip" leaves it open.
 
-- **Q1. Name.** Is "Tsundoku" the name, or a working title?
+- ~~**Q1. Name.**~~ Answered 2026-11-14: "Tsundoku" is a working title; the real name is picked before the public release.
 - **Q2. Forgotten password and lost phone.** Because nobody else can read your library, nobody can
   unlock it for you either. When you set up an account, should the app give you a recovery code to
   print or keep somewhere safe (recommended), or rely on your other devices and backups?
@@ -243,4 +243,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 |---|---|---|
 | 2026-11-14 | Product rules in section 2 taken from the product owner's brief of 2026-11-14 | product owner |
 | 2026-11-14 | Platform: native Android app first, iPhone later and not a priority, PWA only as a fallback (the brief's platform section supersedes its "platform undecided" list) | product owner |
+| 2026-11-14 | Q1: "Tsundoku" is a working title until a name is chosen before the public release | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
