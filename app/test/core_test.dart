@@ -116,6 +116,55 @@ void main() {
     });
   });
 
+  group('her feedback, 2026-11-14', () {
+    test('Reading books are pinned to the top, most recently touched first', () async {
+      var t = DateTime(2026, 1, 1);
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = LibraryRepository(db, clock: () => t = t.add(const Duration(minutes: 1)));
+      final a = await repo.addManual(title: 'A', format: OwnershipFormat.physical);
+      final b = await repo.addManual(title: 'B', format: OwnershipFormat.physical);
+      await repo.addManual(title: 'C', format: OwnershipFormat.kindle);
+      expect(LibraryRepository.pinReading(await repo.watchAll().first).map((x) => x.title), ['C', 'B', 'A'], reason: 'nothing reading: newest first');
+      await repo.update(a, const BookChanges(status: ReadingStatus.reading));
+      expect(LibraryRepository.pinReading(await repo.watchAll().first).map((x) => x.title), ['A', 'C', 'B']);
+      await repo.update(b, const BookChanges(status: ReadingStatus.reading));
+      expect(LibraryRepository.pinReading(await repo.watchAll().first).map((x) => x.title), ['B', 'A', 'C']);
+    });
+
+    test('finished date can be set and cleared', () async {
+      final db = AppDatabase(NativeDatabase.memory());
+      addTearDown(db.close);
+      final repo = LibraryRepository(db);
+      final id = await repo.addManual(title: 'A', format: OwnershipFormat.physical);
+      await repo.update(id, BookChanges(finishedOn: DateTime(2026, 11, 2)));
+      expect((await repo.getBook(id))!.row.finishedOn, DateTime(2026, 11, 2));
+      await repo.update(id, const BookChanges(clear: {'finishedOn'}));
+      expect((await repo.getBook(id))!.row.finishedOn, isNull);
+    });
+
+    test('a library from the first version (schema 1) upgrades and keeps its books', () async {
+      final dir = await Directory.systemTemp.createTemp('upgrade');
+      addTearDown(() => dir.delete(recursive: true));
+      final file = File('${dir.path}/library.sqlite');
+
+      // Make a schema 1 library: today's tables without the finished date, marked as version 1.
+      var db = AppDatabase(NativeDatabase(file));
+      await LibraryRepository(db).addManual(title: 'Carrie', authors: ['Stephen King'], format: OwnershipFormat.physical);
+      await db.customStatement('ALTER TABLE books DROP COLUMN finished_on');
+      await db.customStatement('PRAGMA user_version = 1');
+      await db.close();
+
+      db = AppDatabase(NativeDatabase(file));
+      final repo = LibraryRepository(db);
+      final books = await repo.watchAll().first;
+      expect(books.single.title, 'Carrie');
+      await repo.update(books.single.id, BookChanges(finishedOn: DateTime(2026, 11, 14)));
+      expect((await repo.getBook(books.single.id))!.row.finishedOn, DateTime(2026, 11, 14));
+      await db.close();
+    });
+  });
+
   group('Open Library source', () {
     test('ISBN lookup builds a candidate with work, edition, author and cover', () async {
       final client = MockClient((req) async {

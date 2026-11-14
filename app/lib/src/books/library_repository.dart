@@ -38,6 +38,7 @@ class BookChanges {
     this.publishedDate,
     this.format,
     this.purchasedOn,
+    this.finishedOn,
     this.rating,
     this.notes,
     this.status,
@@ -52,13 +53,14 @@ class BookChanges {
   final String? publishedDate;
   final OwnershipFormat? format;
   final DateTime? purchasedOn;
+  final DateTime? finishedOn;
   final int? rating;
   final String? notes;
   final ReadingStatus? status;
   final String? coverRef;
   final bool? ownCover;
 
-  /// Field names to set back to empty: `isbn13`, `publisher`, `publishedDate`, `purchasedOn`,
+  /// Field names to set back to empty: `isbn13`, `publisher`, `publishedDate`, `purchasedOn`, `finishedOn`,
   /// `rating`, `notes`, `status`, `coverRef`.
   final Set<String> clear;
 }
@@ -99,6 +101,14 @@ class LibraryRepository {
           identifiers: idents.where((i) => i.bookId == r.id).map((i) => Identifier(i.scheme, i.value)).toList(),
         ),
     ];
+  }
+
+  /// The default order until filters arrive (her request): books she's Reading first, most recently
+  /// touched first, then everything else in the order given (newest added first).
+  static List<LibraryBook> pinReading(List<LibraryBook> books) {
+    final reading = books.where((b) => b.status == ReadingStatus.reading).toList()
+      ..sort((a, b) => b.row.updatedAt.compareTo(a.row.updatedAt));
+    return [...reading, ...books.where((b) => b.status != ReadingStatus.reading)];
   }
 
   /// Her library filtered by title, author or ISBN. Local only: never calls a lookup source.
@@ -247,6 +257,7 @@ class LibraryRepository {
       if (c.publishedDate != null) 'publishedDate': c.publishedDate,
       if (c.format != null) 'format': c.format!.name,
       if (c.purchasedOn != null) 'purchasedOn': c.purchasedOn!.toIso8601String(),
+      if (c.finishedOn != null) 'finishedOn': c.finishedOn!.toIso8601String(),
       if (c.rating != null) 'rating': c.rating!.clamp(0, 5),
       if (c.notes != null) 'notes': c.notes,
       if (c.status != null) 'status': c.status!.name,
@@ -265,6 +276,7 @@ class LibraryRepository {
             publishedDate: v('publishedDate', (o) => o as String?),
             format: values['format'] == null ? const Value.absent() : Value(values['format']! as String),
             purchasedOn: v('purchasedOn', (o) => o == null ? null : DateTime.parse(o as String)),
+            finishedOn: v('finishedOn', (o) => o == null ? null : DateTime.parse(o as String)),
             rating: v('rating', (o) => o as int?),
             notes: v('notes', (o) => o as String?),
             status: v('status', (o) => o as String?),

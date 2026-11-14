@@ -18,6 +18,9 @@ ThemeData buildTheme(Accent accent, Brightness brightness) {
     onSecondary: a.onAccent,
     secondaryContainer: a.tint,
     onSecondaryContainer: a.onTint,
+    // The accent as text or icons on the background (stars, outlined buttons).
+    tertiary: a.text,
+    onTertiary: a.onAccent,
     error: brightness == Brightness.dark ? const Color(0xFFF2B8B5) : const Color(0xFFB3261E),
     onError: brightness == Brightness.dark ? const Color(0xFF601410) : const Color(0xFFFFFFFF),
     surface: n.background,
@@ -56,12 +59,13 @@ ThemeData buildTheme(Accent accent, Brightness brightness) {
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(minimumSize: const Size(64, 48), shape: const StadiumBorder(), textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
     ),
+    textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(foregroundColor: a.text)),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         minimumSize: const Size(64, 48),
         shape: const StadiumBorder(),
-        side: BorderSide(color: a.accent, width: 1.5),
-        foregroundColor: a.accent,
+        side: BorderSide(color: a.text, width: 1.5),
+        foregroundColor: a.text,
         textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
     ),
@@ -88,7 +92,7 @@ ThemeData buildTheme(Accent accent, Brightness brightness) {
       fillColor: n.field,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: n.border)),
       enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: n.border)),
-      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: a.accent, width: 2)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: a.text, width: 2)),
     ),
     bottomSheetTheme: BottomSheetThemeData(backgroundColor: n.surface, showDragHandle: true, surfaceTintColor: Colors.transparent),
     dialogTheme: DialogThemeData(backgroundColor: n.surface, surfaceTintColor: Colors.transparent),

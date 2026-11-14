@@ -25,10 +25,12 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   (including a webcam for scanning) is wanted where possible.
 - A native-feeling app on the phone; a web app (PWA) only if native isn't workable.
 - Calm and minimal: clean layouts, a neutral palette with one soft accent colour, light and dark modes.
+- Until filters arrive, books she is **Reading** are pinned to the top of the library (and of search
+  results), most recently touched first; everything else follows, newest first.
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon.
-- Settings has a simple appearance picker: one of **four accent colours** (Sage, Dusty blue, Blush,
-  Heather) and **Light or Dark**. Nothing more (no custom colours, fonts or themes). Book covers are the
+- Settings has a simple appearance picker: one of **five accent colours** (Sage, Dusty blue, Blush,
+  Heather, Sunflower) and **Light or Dark**. Nothing more (no custom colours, fonts or themes). Book covers are the
   star, in a grid. No bookshelf graphics, no heavy animation, nothing that looks like social media.
 - Search is prominent and easy to reach, and results update as you type.
 - An owned book shows a clear **ALREADY OWNED** label in the results, with its cover and details.
@@ -48,7 +50,7 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   or scanning fails, you can type the ISBN.
 - Filled in from Open Library where possible: title, authors, ISBN, cover, publisher, publication
   date, edition/format, genres.
-- Yours to set: format, date purchased, rating (0 to 5 stars), notes, reading status, genres, and
+- Yours to set: format, date purchased, date finished reading (optional), rating (0 to 5 stars), notes, reading status, genres, and
   your own cover photo if the one found is missing or wrong.
 - Reading status is optional and blank by default: TBR, Reading, Read or DNF. Nothing else, and
   it's never set automatically.
@@ -240,6 +242,7 @@ until she's happy with the current one.
   | Dusty blue | `#4E6A85` / `#E2E9F0` | `#9DB5CC` / `#1F2A35` |
   | Blush | `#9A5B66` / `#F4E4E6` | `#E0AEB6` / `#3A262A` |
   | Heather | `#6E5A86` / `#EAE4F0` | `#B9A7D0` / `#2C2536` |
+  | Sunflower | `#EDB40F` / `#FBF0CC` (text `#8A6100`) | `#F5C842` / `#3A3015` |
 
   Neutrals: light `#F7F6F3` background, `#1C1C1A` text; dark `#141414` background, `#EDEDEA` text.
 - **Done when:** the stack is in the decisions log, and the spike worked on her phone.
@@ -262,7 +265,9 @@ The core job, with no accounts and no server.
   cleared without losing her photos. 9 automated tests. Not yet: the Inter font from the mock-ups
   (the phone's own font is used for now).
 - **Her first try, 2026-11-14:** adding, searching, hand entry and notes all work on her phone. Her
-  request, done in 0.1.1: the status bubble and Kindle/Physical icon on grid covers.
+  request, done in 0.1.1: the status bubble and Kindle/Physical icon on grid covers. Her next three,
+  done in 0.1.2: a Sunflower accent, Reading pinned to the top, and a "Finished reading" date
+  (the database upgrades in place; tested).
 
 ### Phase 2: organise and protect
 - Filters (author, genre, format, status, rating) and sorting (title, author, date added, rating).
@@ -344,3 +349,6 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Q7: Open Library only for now. Lookups built behind a `BookSource` interface with per-book identifiers, so more sources can be added later. Trove likely next (key applied for); Inventaire a possible open backup; Google Books and ISBNdb (paid) not used | Mystery |
 | 2026-11-14 | Phase 0 done: scanning, Open Library lookup, offline search and passkey PRF recovery all worked on her phone. Passkey recovery confirmed; the recovery code stays only as a fallback for phones without PRF | Mystery (tested) |
 | 2026-11-14 | Grid covers show a small status bubble (when set) and a Kindle/Physical icon | product owner |
+| 2026-11-14 | Fifth accent: Sunflower (light mode uses a deeper gold wherever the accent is text, so it stays readable) | product owner |
+| 2026-11-14 | Books she is Reading are pinned to the top of the library until filters arrive | product owner |
+| 2026-11-14 | Optional "Finished reading" date on each book (useful for yearly stats later) | product owner |

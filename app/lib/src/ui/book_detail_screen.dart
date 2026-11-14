@@ -49,16 +49,35 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     nav.pop();
   }
 
-  Future<void> _pickDate(LibraryBook b) async {
-    final now = DateTime.now();
-    final d = await showDatePicker(
-      context: context,
-      initialDate: b.row.purchasedOn ?? now,
-      firstDate: DateTime(1900),
-      lastDate: now,
-      helpText: 'Date purchased',
-    );
+  Future<void> _pickPurchased(LibraryBook b) async {
+    final d = await _pickDate(b.row.purchasedOn, 'Date purchased');
     if (d != null) await _repo.update(b.id, BookChanges(purchasedOn: d));
+  }
+
+  Future<void> _pickFinished(LibraryBook b) async {
+    final d = await _pickDate(b.row.finishedOn, 'Date you finished it');
+    if (d != null) await _repo.update(b.id, BookChanges(finishedOn: d));
+  }
+
+  Future<DateTime?> _pickDate(DateTime? current, String help) {
+    final now = DateTime.now();
+    return showDatePicker(context: context, initialDate: current ?? now, firstDate: DateTime(1900), lastDate: now, helpText: help);
+  }
+
+  /// An optional date with a button to set it and a cross to clear it.
+  Widget _dateRow(DateTime? value, String empty, VoidCallback onPick, VoidCallback onClear, String clearTip) {
+    final cs = Theme.of(context).colorScheme;
+    return Row(children: [
+      Expanded(
+        child: OutlinedButton.icon(
+          style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft, side: BorderSide(color: cs.outlineVariant), foregroundColor: cs.onSurface),
+          onPressed: onPick,
+          icon: const Icon(Icons.calendar_today_outlined, size: 18),
+          label: Text(value == null ? empty : formatDate(value)),
+        ),
+      ),
+      if (value != null) IconButton(tooltip: clearTip, icon: const Icon(Icons.close), onPressed: onClear),
+    ]);
   }
 
   Future<void> _editNotes(LibraryBook b) async {
@@ -190,19 +209,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               rating: b.row.rating,
               onChanged: (r) => _repo.update(b.id, r == null ? const BookChanges(clear: {'rating'}) : BookChanges(rating: r)),
             ),
+            heading('Finished reading'),
+            _dateRow(b.row.finishedOn, 'Add the date you finished it', () => _pickFinished(b),
+                () => _repo.update(b.id, const BookChanges(clear: {'finishedOn'})), 'Clear finished date'),
             heading('Purchased'),
-            Row(children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(alignment: Alignment.centerLeft, side: BorderSide(color: cs.outlineVariant), foregroundColor: cs.onSurface),
-                  onPressed: () => _pickDate(b),
-                  icon: const Icon(Icons.calendar_today_outlined, size: 18),
-                  label: Text(b.row.purchasedOn == null ? 'Add the date you bought it' : formatDate(b.row.purchasedOn!)),
-                ),
-              ),
-              if (b.row.purchasedOn != null)
-                IconButton(tooltip: 'Clear date', icon: const Icon(Icons.close), onPressed: () => _repo.update(b.id, const BookChanges(clear: {'purchasedOn'}))),
-            ]),
+            _dateRow(b.row.purchasedOn, 'Add the date you bought it', () => _pickPurchased(b),
+                () => _repo.update(b.id, const BookChanges(clear: {'purchasedOn'})), 'Clear purchase date'),
             heading('Genres'),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final g in b.genres)

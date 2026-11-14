@@ -98,6 +98,17 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _finishedOnMeta = const VerificationMeta(
+    'finishedOn',
+  );
+  @override
+  late final GeneratedColumn<DateTime> finishedOn = GeneratedColumn<DateTime>(
+    'finished_on',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _ratingMeta = const VerificationMeta('rating');
   @override
   late final GeneratedColumn<int> rating = GeneratedColumn<int>(
@@ -184,6 +195,7 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
     edition,
     format,
     purchasedOn,
+    finishedOn,
     rating,
     notes,
     status,
@@ -259,6 +271,12 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
           data['purchased_on']!,
           _purchasedOnMeta,
         ),
+      );
+    }
+    if (data.containsKey('finished_on')) {
+      context.handle(
+        _finishedOnMeta,
+        finishedOn.isAcceptableOrUnknown(data['finished_on']!, _finishedOnMeta),
       );
     }
     if (data.containsKey('rating')) {
@@ -354,6 +372,10 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}purchased_on'],
       ),
+      finishedOn: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}finished_on'],
+      ),
       rating: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}rating'],
@@ -408,6 +430,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
   final String format;
   final DateTime? purchasedOn;
 
+  /// When she finished reading it (optional; added in schema 2).
+  final DateTime? finishedOn;
+
   /// 0 to 5 stars, or null for not rated.
   final int? rating;
   final String? notes;
@@ -432,6 +457,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     this.edition,
     required this.format,
     this.purchasedOn,
+    this.finishedOn,
     this.rating,
     this.notes,
     this.status,
@@ -465,6 +491,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     map['format'] = Variable<String>(format);
     if (!nullToAbsent || purchasedOn != null) {
       map['purchased_on'] = Variable<DateTime>(purchasedOn);
+    }
+    if (!nullToAbsent || finishedOn != null) {
+      map['finished_on'] = Variable<DateTime>(finishedOn);
     }
     if (!nullToAbsent || rating != null) {
       map['rating'] = Variable<int>(rating);
@@ -505,6 +534,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       purchasedOn: purchasedOn == null && nullToAbsent
           ? const Value.absent()
           : Value(purchasedOn),
+      finishedOn: finishedOn == null && nullToAbsent
+          ? const Value.absent()
+          : Value(finishedOn),
       rating: rating == null && nullToAbsent
           ? const Value.absent()
           : Value(rating),
@@ -538,6 +570,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       edition: serializer.fromJson<String?>(json['edition']),
       format: serializer.fromJson<String>(json['format']),
       purchasedOn: serializer.fromJson<DateTime?>(json['purchasedOn']),
+      finishedOn: serializer.fromJson<DateTime?>(json['finishedOn']),
       rating: serializer.fromJson<int?>(json['rating']),
       notes: serializer.fromJson<String?>(json['notes']),
       status: serializer.fromJson<String?>(json['status']),
@@ -560,6 +593,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       'edition': serializer.toJson<String?>(edition),
       'format': serializer.toJson<String>(format),
       'purchasedOn': serializer.toJson<DateTime?>(purchasedOn),
+      'finishedOn': serializer.toJson<DateTime?>(finishedOn),
       'rating': serializer.toJson<int?>(rating),
       'notes': serializer.toJson<String?>(notes),
       'status': serializer.toJson<String?>(status),
@@ -580,6 +614,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     Value<String?> edition = const Value.absent(),
     String? format,
     Value<DateTime?> purchasedOn = const Value.absent(),
+    Value<DateTime?> finishedOn = const Value.absent(),
     Value<int?> rating = const Value.absent(),
     Value<String?> notes = const Value.absent(),
     Value<String?> status = const Value.absent(),
@@ -599,6 +634,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     edition: edition.present ? edition.value : this.edition,
     format: format ?? this.format,
     purchasedOn: purchasedOn.present ? purchasedOn.value : this.purchasedOn,
+    finishedOn: finishedOn.present ? finishedOn.value : this.finishedOn,
     rating: rating.present ? rating.value : this.rating,
     notes: notes.present ? notes.value : this.notes,
     status: status.present ? status.value : this.status,
@@ -622,6 +658,9 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       purchasedOn: data.purchasedOn.present
           ? data.purchasedOn.value
           : this.purchasedOn,
+      finishedOn: data.finishedOn.present
+          ? data.finishedOn.value
+          : this.finishedOn,
       rating: data.rating.present ? data.rating.value : this.rating,
       notes: data.notes.present ? data.notes.value : this.notes,
       status: data.status.present ? data.status.value : this.status,
@@ -644,6 +683,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           ..write('edition: $edition, ')
           ..write('format: $format, ')
           ..write('purchasedOn: $purchasedOn, ')
+          ..write('finishedOn: $finishedOn, ')
           ..write('rating: $rating, ')
           ..write('notes: $notes, ')
           ..write('status: $status, ')
@@ -666,6 +706,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     edition,
     format,
     purchasedOn,
+    finishedOn,
     rating,
     notes,
     status,
@@ -687,6 +728,7 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           other.edition == this.edition &&
           other.format == this.format &&
           other.purchasedOn == this.purchasedOn &&
+          other.finishedOn == this.finishedOn &&
           other.rating == this.rating &&
           other.notes == this.notes &&
           other.status == this.status &&
@@ -706,6 +748,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
   final Value<String?> edition;
   final Value<String> format;
   final Value<DateTime?> purchasedOn;
+  final Value<DateTime?> finishedOn;
   final Value<int?> rating;
   final Value<String?> notes;
   final Value<String?> status;
@@ -724,6 +767,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     this.edition = const Value.absent(),
     this.format = const Value.absent(),
     this.purchasedOn = const Value.absent(),
+    this.finishedOn = const Value.absent(),
     this.rating = const Value.absent(),
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
@@ -743,6 +787,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     this.edition = const Value.absent(),
     required String format,
     this.purchasedOn = const Value.absent(),
+    this.finishedOn = const Value.absent(),
     this.rating = const Value.absent(),
     this.notes = const Value.absent(),
     this.status = const Value.absent(),
@@ -766,6 +811,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     Expression<String>? edition,
     Expression<String>? format,
     Expression<DateTime>? purchasedOn,
+    Expression<DateTime>? finishedOn,
     Expression<int>? rating,
     Expression<String>? notes,
     Expression<String>? status,
@@ -785,6 +831,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
       if (edition != null) 'edition': edition,
       if (format != null) 'format': format,
       if (purchasedOn != null) 'purchased_on': purchasedOn,
+      if (finishedOn != null) 'finished_on': finishedOn,
       if (rating != null) 'rating': rating,
       if (notes != null) 'notes': notes,
       if (status != null) 'status': status,
@@ -806,6 +853,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     Value<String?>? edition,
     Value<String>? format,
     Value<DateTime?>? purchasedOn,
+    Value<DateTime?>? finishedOn,
     Value<int?>? rating,
     Value<String?>? notes,
     Value<String?>? status,
@@ -825,6 +873,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
       edition: edition ?? this.edition,
       format: format ?? this.format,
       purchasedOn: purchasedOn ?? this.purchasedOn,
+      finishedOn: finishedOn ?? this.finishedOn,
       rating: rating ?? this.rating,
       notes: notes ?? this.notes,
       status: status ?? this.status,
@@ -868,6 +917,9 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     if (purchasedOn.present) {
       map['purchased_on'] = Variable<DateTime>(purchasedOn.value);
     }
+    if (finishedOn.present) {
+      map['finished_on'] = Variable<DateTime>(finishedOn.value);
+    }
     if (rating.present) {
       map['rating'] = Variable<int>(rating.value);
     }
@@ -907,6 +959,7 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
           ..write('edition: $edition, ')
           ..write('format: $format, ')
           ..write('purchasedOn: $purchasedOn, ')
+          ..write('finishedOn: $finishedOn, ')
           ..write('rating: $rating, ')
           ..write('notes: $notes, ')
           ..write('status: $status, ')
@@ -1788,6 +1841,7 @@ typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   Value<String?> edition,
   required String format,
   Value<DateTime?> purchasedOn,
+  Value<DateTime?> finishedOn,
   Value<int?> rating,
   Value<String?> notes,
   Value<String?> status,
@@ -1807,6 +1861,7 @@ typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<String?> edition,
   Value<String> format,
   Value<DateTime?> purchasedOn,
+  Value<DateTime?> finishedOn,
   Value<int?> rating,
   Value<String?> notes,
   Value<String?> status,
@@ -1911,6 +1966,11 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<DateTime> get purchasedOn => $composableBuilder(
     column: $table.purchasedOn,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get finishedOn => $composableBuilder(
+    column: $table.finishedOn,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2054,6 +2114,11 @@ class $$BooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get finishedOn => $composableBuilder(
+    column: $table.finishedOn,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get rating => $composableBuilder(
     column: $table.rating,
     builder: (column) => ColumnOrderings(column),
@@ -2127,6 +2192,11 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get purchasedOn => $composableBuilder(
     column: $table.purchasedOn,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get finishedOn => $composableBuilder(
+    column: $table.finishedOn,
     builder: (column) => column,
   );
 
@@ -2242,6 +2312,7 @@ class $$BooksTableTableManager
                 Value<String?> edition = const Value.absent(),
                 Value<String> format = const Value.absent(),
                 Value<DateTime?> purchasedOn = const Value.absent(),
+                Value<DateTime?> finishedOn = const Value.absent(),
                 Value<int?> rating = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> status = const Value.absent(),
@@ -2260,6 +2331,7 @@ class $$BooksTableTableManager
                 edition: edition,
                 format: format,
                 purchasedOn: purchasedOn,
+                finishedOn: finishedOn,
                 rating: rating,
                 notes: notes,
                 status: status,
@@ -2280,6 +2352,7 @@ class $$BooksTableTableManager
                 Value<String?> edition = const Value.absent(),
                 required String format,
                 Value<DateTime?> purchasedOn = const Value.absent(),
+                Value<DateTime?> finishedOn = const Value.absent(),
                 Value<int?> rating = const Value.absent(),
                 Value<String?> notes = const Value.absent(),
                 Value<String?> status = const Value.absent(),
@@ -2298,6 +2371,7 @@ class $$BooksTableTableManager
                 edition: edition,
                 format: format,
                 purchasedOn: purchasedOn,
+                finishedOn: finishedOn,
                 rating: rating,
                 notes: notes,
                 status: status,

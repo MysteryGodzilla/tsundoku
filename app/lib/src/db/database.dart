@@ -32,6 +32,9 @@ class Books extends Table {
   TextColumn get format => text()();
   DateTimeColumn get purchasedOn => dateTime().nullable()();
 
+  /// When she finished reading it (optional; added in schema 2).
+  DateTimeColumn get finishedOn => dateTime().nullable()();
+
   /// 0 to 5 stars, or null for not rated.
   IntColumn get rating => integer().nullable()();
   TextColumn get notes => text().nullable()();
@@ -92,13 +95,16 @@ class AppDatabase extends _$AppDatabase {
             ));
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
         onCreate: (m) async {
           await m.createAll();
           await customStatement('CREATE INDEX IF NOT EXISTS idx_identifiers_value ON book_identifiers (scheme, value)');
+        },
+        onUpgrade: (m, from, to) async {
+          if (from < 2) await m.addColumn(books, books.finishedOn);
         },
         beforeOpen: (details) async => customStatement('PRAGMA foreign_keys = ON'),
       );

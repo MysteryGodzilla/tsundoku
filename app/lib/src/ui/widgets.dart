@@ -179,11 +179,11 @@ class StarRating extends StatelessWidget {
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         for (var i = 1; i <= 5; i++)
           onChanged == null
-              ? Icon((rating ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded, size: size, color: cs.primary)
+              ? Icon((rating ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded, size: size, color: cs.tertiary)
               : IconButton(
                   tooltip: '$i star${i == 1 ? '' : 's'}',
                   visualDensity: VisualDensity.compact,
-                  icon: Icon((rating ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded, size: size, color: cs.primary),
+                  icon: Icon((rating ?? 0) >= i ? Icons.star_rounded : Icons.star_outline_rounded, size: size, color: cs.tertiary),
                   onPressed: () => onChanged!(rating == i ? null : i),
                 ),
       ]),

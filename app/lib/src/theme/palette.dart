@@ -8,7 +8,8 @@ enum Accent {
   sage('Sage'),
   dustyBlue('Dusty blue'),
   blush('Blush'),
-  heather('Heather');
+  heather('Heather'),
+  sunflower('Sunflower');
 
   const Accent(this.label);
   final String label;
@@ -17,8 +18,15 @@ enum Accent {
 }
 
 class AccentColours {
-  const AccentColours({required this.accent, required this.onAccent, required this.tint, required this.onTint});
+  const AccentColours({required this.accent, required this.onAccent, required this.tint, required this.onTint, Color? text})
+      : text = text ?? accent;
+
+  /// For fills: buttons, badges, bubbles.
   final Color accent;
+
+  /// For the accent used as text or icons on the background (a deeper shade where the accent is
+  /// too light to read there, like Sunflower in light mode).
+  final Color text;
   final Color onAccent;
   final Color tint;
   final Color onTint;
@@ -74,6 +82,11 @@ AccentColours accentColours(Accent a, Brightness b) {
     Accent.heather => dark
         ? const AccentColours(accent: Color(0xFFB9A7D0), onAccent: Color(0xFF1E1529), tint: Color(0xFF2C2536), onTint: Color(0xFFD3C6E4))
         : const AccentColours(accent: Color(0xFF6E5A86), onAccent: Color(0xFFFFFFFF), tint: Color(0xFFEAE4F0), onTint: Color(0xFF533F6B)),
+    // Yellow is too light for text on a light background, so light mode uses a deeper gold for text.
+    Accent.sunflower => dark
+        ? const AccentColours(accent: Color(0xFFF5C842), onAccent: Color(0xFF2B2200), tint: Color(0xFF3A3015), onTint: Color(0xFFF7DC8A))
+        : const AccentColours(
+            accent: Color(0xFFEDB40F), onAccent: Color(0xFF2B2200), tint: Color(0xFFFBF0CC), onTint: Color(0xFF6B4E00), text: Color(0xFF8A6100)),
   };
 }
 

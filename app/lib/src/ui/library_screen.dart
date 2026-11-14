@@ -44,7 +44,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         child: StreamBuilder<List<LibraryBook>>(
           stream: _books,
           builder: (context, snap) {
-            final all = snap.data ?? const <LibraryBook>[];
+            final all = LibraryRepository.pinReading(snap.data ?? const <LibraryBook>[]);
             final results = LibraryRepository.filter(all, _query);
             final searching = _query.trim().isNotEmpty;
             return CustomScrollView(slivers: [
@@ -240,7 +240,7 @@ class _EmptyLibrary extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-        Icon(Icons.auto_stories_outlined, size: 56, color: cs.primary),
+        Icon(Icons.auto_stories_outlined, size: 56, color: cs.tertiary),
         const SizedBox(height: 16),
         const Text('Your library is empty', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
         const SizedBox(height: 8),
