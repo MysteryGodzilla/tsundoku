@@ -266,8 +266,8 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 - ~~**Q5. Look and feel.**~~ Answered 2026-11-14: a neutral background with **one soft accent colour**
   for buttons and the ALREADY OWNED label. After the mock-ups: four accents (Sage, Dusty blue, Blush,
   Heather) to pick from in Settings, plus Light or Dark.
-- **Q6. Starting look** (proposed defaults, to confirm): the app opens in Sage, and in light or dark to
-  match the phone's own setting, until she picks in Settings.
+- ~~**Q6. Starting look.**~~ Answered 2026-11-14: the app opens in Sage, in light or dark to match the
+  phone's own setting, until she picks in Settings.
 
 ## 6. Open (deferred in the brief)
 - Hosting provider and costs for a public service; email provider (only the hosted service needs one).
@@ -292,3 +292,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Email optional: the email address is the login name; servers work without mail; alerts in the app; verification emails only when mail is set up. Replaces the brief's required email verification and reset emails | Mystery |
 | 2026-11-14 | Stack: Flutter (Dart) app, `drift` SQLite, `mobile_scanner`; Dart (`shelf`) server. Expo is the fallback if passkey PRF fails in Phase 0 | Mystery |
 | 2026-11-14 | Settings: pick one of four accents (Sage, Dusty blue, Blush, Heather) and Light or Dark; nothing more complicated. The fourth accent is named Heather so it doesn't sound like Dusty blue | Mystery |
+| 2026-11-14 | Q6: first launch uses Sage, light or dark following the phone, until changed in Settings | Mystery |
