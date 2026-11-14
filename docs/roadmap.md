@@ -227,8 +227,8 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 - ~~**Q3. Logging out.**~~ Answered 2026-11-14: the app **locks** after 1 day without use and opens
   with her fingerprint, face or phone PIN. A full logout (email and password again) only after a long
   time unused: 30 days proposed.
-- **Q4. Desktop first or later.** Is the phone alone enough to start, with the computer coming in
-  Phase 4?
+- ~~**Q4. Desktop first or later.**~~ Answered 2026-11-14: phone first. The computer version comes
+  in Phase 4, after sync works.
 - **Q5. Look and feel.** Any colours, apps or websites whose look you like, to guide the first
   design?
 
@@ -247,4 +247,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Q1: "Tsundoku" is a working title until a name is chosen before the public release | product owner |
 | 2026-11-14 | Q2: account sign-up gives a one-time recovery code to print or keep safe; it restores the library if the password and every device are lost | product owner |
 | 2026-11-14 | Q3: lock after 1 day without use, unlock with fingerprint, face or phone PIN; full logout only after a long time unused (30 days proposed). Refines the brief's "log out after inactivity" | product owner |
+| 2026-11-14 | Q4: Android phone first; the computer version follows in Phase 4, after sync | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
