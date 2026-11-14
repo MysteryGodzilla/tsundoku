@@ -177,8 +177,22 @@ a web build (or a Windows app) for desktop. Why Flutter over Expo:
   hardback, Kindle) of a book belongs to one work, so owning any edition marks the work as owned.
   Books entered by hand fall back to normalised title plus author, with confirmation.
 - Be a polite client: identify the app in requests, cache results, and respect Open Library's
-  published rate limits. To check before building: the current limits, terms for cover use and
-  caching, and how well Kindle editions are covered.
+  published rate limits. Checked 2026-11-14: [open-library.md](open-library.md).
+- **Built for more sources later (decided 2026-11-14).** Open Library is the only source for now,
+  but lookups go through one small interface so another source can be added without touching the
+  rest of the app:
+  - A `BookSource` has an id and name, `lookupIsbn(isbn)`, `search(title, author)`, a cover
+    reference, its own rate limit, and whether it needs a key. Open Library is the first one.
+  - Every source returns the same `Candidate` shape: title, authors, ISBN, publisher, date,
+    subjects, a cover reference, and its **identifiers** (for example `openlibrary:work`,
+    `openlibrary:edition`, `isbn13`; later `trove:work` or `inventaire:wd`).
+  - A book keeps all of its identifiers in a separate table (book, scheme, value), not one
+    "work key" column. The owned check matches on any shared identifier first, then on normalised
+    title plus author, so books from different sources still match.
+  - Sources run in a set order: an ISBN tries each enabled source until one knows it; then manual
+    entry. Today the order is just Open Library.
+  - A source's key (Trove's, say) lives in the app's settings or the server's config, never in the
+    repo. Adding any source is the product owner's call (see Q7).
 
 ### 3.6 Backups and export
 - On each device: a daily encrypted backup file, kept for the chosen number of days, which Android
@@ -283,13 +297,10 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 - ~~**Q6. Starting look.**~~ Answered 2026-11-14: the app opens in Sage, in light or dark to match the
   phone's own setting, until she picks in Settings.
 
-- **Q7. Books Open Library doesn't know.** Open Library is missing about two in three recent
-  Australian books. Her brief says Open Library only, with no second source. Options: (a) keep Open
-  Library only and type the rest in; (b) when Open Library doesn't know a book, also ask Trove, the
-  National Library of Australia's free catalogue, which has nearly every Australian book (but rarely
-  a cover: she'd snap a photo); (c) Google Books as the second source instead (more covers, but her
-  brief ruled it out). Recommended: (b), after testing it on the same books. Details:
-  [book-sources.md](book-sources.md).
+- ~~**Q7. Books Open Library doesn't know.**~~ Answered 2026-11-14: keep **Open Library only for
+  now**; books it doesn't know are typed in. The lookup is built so sources can be added later
+  (section 3.5). Trove is the likely next one (key applied for, waiting); Inventaire is a possible
+  open backup. Google Books and ISBNdb won't be used. Details: [book-sources.md](book-sources.md).
 
 ## 6. Open (deferred in the brief)
 - Hosting provider and costs for a public service; email provider (only the hosted service needs one).
@@ -316,3 +327,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Settings: pick one of four accents (Sage, Dusty blue, Blush, Heather) and Light or Dark; nothing more complicated. The fourth accent is named Heather so it doesn't sound like Dusty blue | Mystery |
 | 2026-11-14 | Q6: first launch uses Sage, light or dark following the phone, until changed in Settings | Mystery |
 | 2026-11-14 | Passkey project domain: mysterygodzilla.github.io (GitHub Pages), hosting only `assetlinks.json` | Mystery |
+| 2026-11-14 | Q7: Open Library only for now. Lookups built behind a `BookSource` interface with per-book identifiers, so more sources can be added later. Trove likely next (key applied for); Inventaire a possible open backup; Google Books and ISBNdb (paid) not used | Mystery |

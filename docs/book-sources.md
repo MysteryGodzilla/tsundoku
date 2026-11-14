@@ -27,7 +27,15 @@ Penguin Random House Australia, HarperCollins Australia, Hardie Grant, Ultimo an
 | Hardcover | free | account token | Modern community catalogue | Needs an account per user; app-use terms unclear |
 | NLA catalogue search pages | free | none | Same data as Trove | Not an official API; use Trove instead |
 
-## Recommendation (for the product owner to decide)
+## Decision (2026-11-14)
+- **Open Library only for now.** Books it doesn't know are typed in.
+- **Built for more later:** lookups go through a `BookSource` interface, and each book keeps all of
+  its identifiers, so another source can be added without changing the rest (roadmap section 3.5).
+- **Trove:** the likely next source. A key has been applied for; approval can take a while.
+- **Inventaire:** a possible open backup later. It didn't help with these Australian books.
+- **Google Books:** not used. **ISBNdb:** not used (paid).
+
+## Recommendation made before the decision
 Keep Open Library first (no key, open, its work records power the owned check), and when it
 doesn't know an ISBN, ask **Trove** before falling back to typing it in. That fits an Australian
 library best, stays free, and adds no tracking. Covers for those books come from her own photo
