@@ -16,6 +16,7 @@ import 'package:tsundoku/src/db/database.dart';
 import 'package:tsundoku/src/settings/appearance.dart';
 import 'package:tsundoku/src/settings/view_settings.dart';
 import 'package:tsundoku/src/sources/book_source.dart';
+import 'package:tsundoku/src/sync/sync_service.dart';
 import 'package:tsundoku/src/theme/palette.dart';
 import 'package:tsundoku/src/ui/book_detail_screen.dart';
 
@@ -44,6 +45,7 @@ Future<void> _settle(WidgetTester tester) async {
 Future<AppServices> _services(AppDatabase db, BookLookup lookup, Directory tmp) async {
   final library = LibraryRepository(db);
   final covers = CoverStore(lookup, baseDir: () async => tmp);
+  final account = AccountService(secrets: MemorySecretStore());
   return AppServices(
     library: library,
     lookup: lookup,
@@ -56,7 +58,8 @@ Future<AppServices> _services(AppDatabase db, BookLookup lookup, Directory tmp) 
       prefs: await SharedPreferences.getInstance(),
       localDir: () async => Directory('${tmp.path}/backups'),
     ),
-    account: AccountService(secrets: MemorySecretStore()),
+    account: account,
+    sync: SyncService(library: library, covers: covers, account: account),
   );
 }
 

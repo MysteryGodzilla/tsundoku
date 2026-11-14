@@ -325,6 +325,18 @@ The core job, with no accounts and no server.
   account, and the app lock (fingerprint, face or PIN after a day unused, when signed in). The app's
   tests run against the real server code in memory, with two simulated phones. Not on a phone yet:
   there's no server it can reach until the network review. Next: step 3b, sync.
+- **Step 3b built 2026-11-15 (app 0.4.0, server 0.2.0):** encrypted sync for people who choose it.
+  Each change is an event (field, value, hybrid logical clock, device), locked with the library key
+  before it leaves the phone; the server keeps an ordered list it can't read, plus locked photo
+  attachments. A sync pulls, then pushes, so the device that syncs second notices when the same field
+  changed on both and asks her (only there); different fields simply merge; a deletion against an
+  edit asks too, and "keep it" brings the book back. The first sync sends the whole library; a backup
+  restore reaches other devices as ordinary changes. Syncs a few seconds after a change, on opening
+  and every five minutes while open; Settings shows when it last synced, changes waiting (with a
+  list), questions to decide, and a problem only after about a day. Tested with two simulated phones
+  through the real server code, including a check that the server's database file holds no titles,
+  authors, notes or genres. Schema 3 (sync tables) upgrades in place. Not on a phone yet (no
+  reachable server). Next: step 3c.
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.

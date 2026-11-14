@@ -55,6 +55,8 @@ library key: 32 random bytes made on the first device. Encrypts every synced cha
   shown for typing, since a phone can't scan its own screen.
 
 ## Sync (step 3b)
+Built 2026-11-15 as described, with one detail settled: a sync **pulls before it pushes**, so only
+the device that syncs second sees a conflict, and asks once.
 - Every change already goes into the phone's change log. Each entry becomes a **change event**:
   `{bookId, field, value, at (hybrid logical clock), deviceId}`, JSON, then encrypted with the
   library key (AES-256-GCM, random 96-bit nonce, the account id as associated data).

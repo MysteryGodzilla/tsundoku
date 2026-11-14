@@ -7,6 +7,7 @@ import 'src/account/app_lock.dart';
 import 'src/app_info.dart';
 import 'src/app_scope.dart';
 import 'src/backup/backup_service.dart';
+import 'src/sync/sync_service.dart';
 import 'src/books/library_repository.dart';
 import 'src/covers/cover_store.dart';
 import 'src/db/database.dart';
@@ -34,7 +35,15 @@ Future<void> main() async {
     view: await ViewSettings.load(),
     backups: BackupService(library: library, covers: covers, prefs: await SharedPreferences.getInstance()),
     account: account,
+    sync: SyncService(library: library, covers: covers, account: account)..start(),
   );
+  // Sync right after she signs in or finishes the authenticator setup.
+  var wasReady = services.sync.ready;
+  account.addListener(() {
+    final ready = services.sync.ready;
+    if (ready && !wasReady) services.sync.syncNow();
+    wasReady = ready;
+  });
   runApp(TsundokuApp(services: services));
 }
 
@@ -86,8 +95,14 @@ class _BackupHookState extends State<_BackupHook> {
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(onResume: widget.services.backups.runIfDue);
-    WidgetsBinding.instance.addPostFrameCallback((_) => widget.services.backups.runIfDue());
+    _lifecycle = AppLifecycleListener(onResume: () {
+      widget.services.backups.runIfDue();
+      widget.services.sync.syncNow();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      widget.services.backups.runIfDue();
+      widget.services.sync.syncNow();
+    });
   }
 
   @override

@@ -17,6 +17,7 @@ import '../settings/appearance.dart';
 import '../theme/palette.dart';
 import 'account_screen.dart';
 import 'restore_screen.dart';
+import 'sync_screens.dart';
 import 'widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -211,6 +212,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  List<Widget> _syncStatus(BuildContext context) {
+    final sync = AppScope.of(context).sync;
+    final cs = Theme.of(context).colorScheme;
+    final s = AppScope.of(context).account.state!;
+    if (!s.totpConfirmed) {
+      return [
+        const ListTile(title: Text('Sync'), subtitle: Text('Starts once the authenticator app is set up (below).')),
+        const Divider(indent: 16, endIndent: 16),
+      ];
+    }
+    final last = sync.lastSyncAt;
+    return [
+      ListTile(
+        title: const Text('Sync'),
+        subtitle: Text(sync.syncing
+            ? 'Syncing…'
+            : last == null
+                ? 'Not yet'
+                : 'Last synced ${formatDate(last)}, ${two(last.hour)}:${two(last.minute)}'),
+        trailing: TextButton(onPressed: sync.syncing ? null : sync.syncNow, child: const Text('Sync now')),
+      ),
+      if (sync.problemPersists)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Text(sync.problem ?? 'Sync hasn\'t worked for a while.', style: TextStyle(color: cs.error)),
+        ),
+      if (sync.decisions > 0) ...[
+        const Divider(indent: 16, endIndent: 16),
+        ListTile(
+          title: Text(sync.decisions == 1 ? '1 thing to decide' : '${sync.decisions} things to decide',
+              style: TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)),
+          subtitle: const Text('Changed on two devices'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DecisionsScreen())),
+        ),
+      ],
+      if (sync.pending > 0) ...[
+        const Divider(indent: 16, endIndent: 16),
+        ListTile(
+          title: Text(sync.pending == 1 ? '1 change waiting to sync' : '${sync.pending} changes waiting to sync'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PendingScreen())),
+        ),
+      ],
+      const Divider(indent: 16, endIndent: 16),
+    ];
+  }
+
   Widget _syncCard(BuildContext context, AccountService a) {
     final s = a.state;
     if (s == null) {
@@ -229,6 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(children: [
         ListTile(title: Text(s.email), subtitle: Text(s.serverUrl.replaceFirst(RegExp(r'^https?://'), ''))),
         const Divider(indent: 16, endIndent: 16),
+        ..._syncStatus(context),
         ListTile(
           title: const Text('Authenticator app'),
           subtitle: Text(s.totpConfirmed ? 'Set up' : 'Not set up yet. Needed to reset a forgotten password.'),
@@ -329,7 +379,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListenableBuilder(
-        listenable: Listenable.merge([appearance, services.backups, services.account]),
+        listenable: Listenable.merge([appearance, services.backups, services.account, services.sync]),
         builder: (context, _) {
           final brightness = Theme.of(context).brightness;
           final effectiveDark = appearance.mode == AppearanceMode.dark ||

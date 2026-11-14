@@ -9,6 +9,7 @@ import 'add_flow.dart';
 import 'filters_sheet.dart';
 import 'book_detail_screen.dart';
 import 'settings_screen.dart';
+import 'sync_screens.dart';
 import 'widgets.dart';
 
 /// The library: search her own books as she types (offline), and the cover grid.
@@ -48,7 +49,29 @@ class _LibraryScreenState extends State<LibraryScreen> {
           padding: const EdgeInsets.only(right: 8),
           child: FilterChip(label: Text(label), selected: selected, showCheckmark: false, onSelected: (_) => onTap()),
         );
+    final sync = AppScope.of(context).sync;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Only for people who sync, and only when something needs her (a product rule: no nagging).
+      if (sync.decisions > 0 || sync.problemPersists)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Card(
+            color: cs.primaryContainer,
+            child: ListTile(
+              leading: Icon(sync.decisions > 0 ? Icons.call_split : Icons.cloud_off_outlined, color: cs.onPrimaryContainer),
+              title: Text(
+                sync.decisions > 0
+                    ? (sync.decisions == 1 ? '1 sync question needs you' : '${sync.decisions} sync questions need you')
+                    : 'Sync hasn\'t worked for a while',
+                style: TextStyle(color: cs.onPrimaryContainer, fontWeight: FontWeight.w600),
+              ),
+              trailing: Icon(Icons.chevron_right, color: cs.onPrimaryContainer),
+              onTap: () => Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => sync.decisions > 0 ? const DecisionsScreen() : const SettingsScreen(),
+              )),
+            ),
+          ),
+        ),
       SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -110,7 +133,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       body: SafeArea(
         bottom: false,
         child: ListenableBuilder(
-          listenable: AppScope.of(context).view,
+          listenable: Listenable.merge([AppScope.of(context).view, AppScope.of(context).sync]),
           builder: (context, _) => StreamBuilder<List<LibraryBook>>(
           stream: _books,
           builder: (context, snap) {
