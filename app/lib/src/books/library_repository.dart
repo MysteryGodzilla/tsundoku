@@ -316,6 +316,35 @@ class LibraryRepository {
     return rows.map((r) => r.name).toSet().toList()..sort();
   }
 
+  /// Every book, for backups and export.
+  Future<List<LibraryBook>> allBooks() => watchAll().first;
+
+  /// When the library last changed (anything in the change log), or null if never.
+  Future<DateTime?> lastChangeAt() async {
+    final q = db.selectOnly(db.changeLog)..addColumns([db.changeLog.at.max()]);
+    return (await q.getSingle()).read(db.changeLog.at.max());
+  }
+
+  /// Replace the whole library with [books] (restoring a backup). Ids and dates are kept.
+  Future<void> replaceAll(List<LibraryBook> books) => db.transaction(() async {
+        await db.delete(db.bookGenres).go();
+        await db.delete(db.bookIdentifiers).go();
+        await db.delete(db.books).go();
+        for (final b in books) {
+          await db.into(db.books).insert(b.row);
+          for (final i in b.identifiers.toSet()) {
+            await db.into(db.bookIdentifiers).insert(
+                  BookIdentifiersCompanion.insert(bookId: b.id, scheme: i.scheme, value: i.value),
+                  mode: InsertMode.insertOrIgnore,
+                );
+          }
+          for (final g in b.genres.toSet()) {
+            await db.into(db.bookGenres).insert(BookGenresCompanion.insert(bookId: b.id, name: g), mode: InsertMode.insertOrIgnore);
+          }
+        }
+        await _log('*', 'restored', {'books': books.length});
+      });
+
   /// Permanently remove a book (no recycle bin, a product rule).
   Future<void> delete(String id) => db.transaction(() async {
         await (db.delete(db.books)..where((b) => b.id.equals(id))).go();

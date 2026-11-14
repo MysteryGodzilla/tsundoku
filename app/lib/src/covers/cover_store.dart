@@ -93,6 +93,22 @@ class CoverStore extends ChangeNotifier {
     _changed();
   }
 
+  /// Her own photo for a book, for backups.
+  Future<Uint8List?> ownPhotoBytes(String bookId) async {
+    if (!supported) return null;
+    final f = await _own(bookId);
+    return await f.exists() ? f.readAsBytes() : null;
+  }
+
+  /// Remove every cover (restoring a backup starts clean; downloads come back as needed).
+  Future<void> deleteAll() async {
+    if (!supported) return;
+    await for (final e in (await _covers()).list()) {
+      if (e is File) await e.delete();
+    }
+    _changed();
+  }
+
   /// Remove every cover file for a book that has been deleted.
   Future<void> deleteFor(String bookId) async {
     for (final f in [await _downloaded(bookId), await _own(bookId)]) {

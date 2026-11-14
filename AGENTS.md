@@ -32,6 +32,8 @@ All commands run in `app/` (Flutter 3.50 stable, Dart 3.14).
 - Every write to the library goes through `LibraryRepository`, so the change log stays complete for sync.
 - Gotchas: `kotlin.incremental=false` in `android/gradle.properties` (Kotlin's cache breaks across
   drives on Windows); widget tests need `closeStreamsSynchronously` and real-time pumps (see `test/app_test.dart`).
+- Android-only native packages (like `saf_stream`, which uses FFI) must be imported only through
+  `if (dart.library.io)` conditional exports with a stub, or the web build breaks (see `app/lib/src/backup/`).
 - Keep `KeyboardInsetsGuard` (`app/lib/src/ui/keyboard_guard.dart`) around the app: it works around a
   Flutter engine bug that leaves a blank keyboard-sized area after switching apps with the keyboard open.
 - No AI attribution in commits or pull requests.

@@ -3,7 +3,10 @@ import 'package:material_ui/material_ui.dart';
 import '../app_scope.dart';
 import '../books/isbn.dart';
 import '../books/library_repository.dart';
+import '../books/library_view.dart';
+import '../books/models.dart';
 import 'add_flow.dart';
+import 'filters_sheet.dart';
 import 'book_detail_screen.dart';
 import 'settings_screen.dart';
 import 'widgets.dart';
@@ -34,6 +37,71 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   void _open(LibraryBook b) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: b.id)));
 
+  LibraryFilter _filter = LibraryFilter.none;
+
+  /// Quick chips (format and status), the sort menu and the Filters button, as in the mock-up.
+  Widget _controls(BuildContext context, List<LibraryBook> books, SortOrder order) {
+    final view = AppScope.of(context).view;
+    final cs = Theme.of(context).colorScheme;
+    final chipsEmpty = _filter.formats.isEmpty && _filter.statuses.isEmpty;
+    Widget chip(String label, bool selected, VoidCallback onTap) => Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: FilterChip(label: Text(label), selected: selected, showCheckmark: false, onSelected: (_) => onTap()),
+        );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(children: [
+          chip('All', chipsEmpty, () => setState(() => _filter = _filter.copyWith(formats: {}, statuses: {}))),
+          for (final f in OwnershipFormat.values)
+            chip(f.label, _filter.formats.contains(f), () => setState(() {
+                  final s = {..._filter.formats};
+                  s.contains(f) ? s.remove(f) : s.add(f);
+                  _filter = _filter.copyWith(formats: s);
+                })),
+          for (final st in ReadingStatus.values)
+            chip(st.label, _filter.statuses.contains(st), () => setState(() {
+                  final s = {..._filter.statuses};
+                  s.contains(st) ? s.remove(st) : s.add(st);
+                  _filter = _filter.copyWith(statuses: s);
+                })),
+        ]),
+      ),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
+        child: Row(children: [
+          PopupMenuButton<SortOrder>(
+            tooltip: 'Sort',
+            initialValue: order,
+            onSelected: view.setSortOrder,
+            itemBuilder: (_) => [for (final o in SortOrder.values) PopupMenuItem(value: o, child: Text(o.label))],
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                Text(order.label, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+                Icon(Icons.expand_more, size: 18, color: cs.onSurfaceVariant),
+              ]),
+            ),
+          ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () async {
+              final f = await showFiltersSheet(context, books, _filter);
+              if (f != null) setState(() => _filter = f);
+            },
+            icon: Badge(
+              isLabelVisible: _filter.sheetCount > 0,
+              label: Text('${_filter.sheetCount}'),
+              child: const Icon(Icons.tune),
+            ),
+            label: const Text('Filters'),
+          ),
+        ]),
+      ),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
@@ -41,12 +109,18 @@ class _LibraryScreenState extends State<LibraryScreen> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: StreamBuilder<List<LibraryBook>>(
+        child: ListenableBuilder(
+          listenable: AppScope.of(context).view,
+          builder: (context, _) => StreamBuilder<List<LibraryBook>>(
           stream: _books,
           builder: (context, snap) {
-            final all = LibraryRepository.pinReading(snap.data ?? const <LibraryBook>[]);
+            final books = snap.data ?? const <LibraryBook>[];
+            final all = LibraryRepository.pinReading(books);
+            // Search always looks at the whole library: the owned check must never miss a book.
             final results = LibraryRepository.filter(all, _query);
             final searching = _query.trim().isNotEmpty;
+            final order = AppScope.of(context).view.sortOrder;
+            final shown = applyView(books, order, _filter);
             return CustomScrollView(slivers: [
               SliverPadding(
                 padding: const EdgeInsets.fromLTRB(20, 16, 12, 0),
@@ -55,7 +129,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     Expanded(
                       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         Text('Library', style: tt.headlineMedium?.copyWith(fontWeight: FontWeight.w700, letterSpacing: -0.5)),
-                        Text(snap.hasData ? '${all.length} book${all.length == 1 ? '' : 's'}' : '', style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant)),
+                        Text(
+                          !snap.hasData
+                              ? ''
+                              : (_filter.isEmpty || searching)
+                                  ? '${all.length} book${all.length == 1 ? '' : 's'}'
+                                  : '${shown.length} of ${all.length} books',
+                          style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
+                        ),
                       ]),
                     ),
                     IconButton(
@@ -100,24 +181,41 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 SliverFillRemaining(hasScrollBody: false, child: _EmptyLibrary(onAdd: () => showAddBookSheet(context)))
               else if (searching)
                 ..._searchResults(context, results)
-              else
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(20, 4, 20, 100 + MediaQuery.paddingOf(context).bottom),
-                  sliver: SliverGrid(
-                    gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 140,
-                      mainAxisSpacing: 18,
-                      crossAxisSpacing: 14,
-                      childAspectRatio: 0.52,
+              else ...[
+                SliverToBoxAdapter(child: _controls(context, books, order)),
+                if (shown.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+                        const SizedBox(height: 24),
+                        Text('No books match these filters', style: tt.titleMedium),
+                        const SizedBox(height: 12),
+                        OutlinedButton(onPressed: () => setState(() => _filter = LibraryFilter.none), child: const Text('Show all books')),
+                      ]),
                     ),
-                    delegate: SliverChildBuilderDelegate(
-                      childCount: all.length,
-                      (context, i) => _GridBook(book: all[i], onTap: () => _open(all[i])),
+                  )
+                else
+                  SliverPadding(
+                    padding: EdgeInsets.fromLTRB(20, 4, 20, 100 + MediaQuery.paddingOf(context).bottom),
+                    sliver: SliverGrid(
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 140,
+                        mainAxisSpacing: 18,
+                        crossAxisSpacing: 14,
+                        childAspectRatio: 0.52,
+                      ),
+                      delegate: SliverChildBuilderDelegate(
+                        childCount: shown.length,
+                        (context, i) => _GridBook(book: shown[i], onTap: () => _open(shown[i])),
+                      ),
                     ),
                   ),
-                ),
+              ],
             ]);
           },
+        ),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(

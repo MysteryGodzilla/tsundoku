@@ -25,8 +25,12 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   (including a webcam for scanning) is wanted where possible.
 - A native-feeling app on the phone; a web app (PWA) only if native isn't workable.
 - Calm and minimal: clean layouts, a neutral palette with one soft accent colour, light and dark modes.
-- Until filters arrive, books she is **Reading** are pinned to the top of the library (and of search
-  results), most recently touched first; everything else follows, newest first.
+- Books she is **Reading** are pinned to the top in the default order (Recently added) and in search
+  results, most recently touched first. In the other sorts (Title, Author, Rating) Reading is the
+  tie-breaker: sorting by author, her Reading Stephen King comes first among the Stephen Kings.
+- Filters: quick chips under the search bar (All, Physical, Kindle, TBR, Reading, Read, DNF), a sort
+  menu, and a Filters button for author, genre and rating. Searching always covers the whole library,
+  whatever the filters, so the owned check never misses a book.
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon.
 - Settings has a simple appearance picker: one of **five accent colours** (Sage, Dusty blue, Blush,
@@ -279,6 +283,13 @@ The core job, with no accounts and no server.
 - Spreadsheet export.
 - Automatic daily local backups with chosen frequency and retention; restore.
 - **Done when:** she can lose her phone and get her library back from a backup.
+- **Built 2026-11-14 (0.2.0)**, decisions in the log. Sort: Recently added, Title, Author (by surname),
+  Rating. Spreadsheet export (`.xlsx`, every field) through Android's share sheet. Backups: a zip
+  (`library.json` plus her own cover photos) saved automatically when one is due (daily or weekly) and
+  something changed, to a folder she picks (Google Drive, say) or on the phone until she does; kept 7,
+  14, 30 or 90 days, the newest always kept; "Back up now"; restore lists backups in the folder and on
+  the phone and saves a safety copy first. Backups aren't encrypted yet (Phase 3, with accounts).
+  Waiting for her phone test: back up to Drive, then restore.
 
 ### Phase 3: accounts and sync (self-hosted server)
 - The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
@@ -361,3 +372,8 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | The finished date shows only when a book is Read ("Finished reading") or DNF ("Stopped reading"); kept, hidden, if the status changes back | product owner |
 | 2026-11-14 | The phone's own font, not Inter | Mystery |
 | 2026-11-14 | No offline indicator; a failed lookup just says "Open Library can't be reached." | Mystery |
+| 2026-11-14 | Backups go to a folder she picks (e.g. Google Drive), or stay on the phone until she does | Mystery |
+| 2026-11-14 | Backups aren't encrypted in Phase 2; encryption comes with accounts in Phase 3 | Mystery |
+| 2026-11-14 | Reading pinned only in the default sort; in Title, Author and Rating sorts it's the tie-breaker | Mystery |
+| 2026-11-14 | Filters: chips for format and status, a sort menu, a Filters button for author, genre, rating | Mystery |
+| 2026-11-14 | Searching ignores filters (the owned check must see the whole library); author sort is by surname | Mystery (recommended) |

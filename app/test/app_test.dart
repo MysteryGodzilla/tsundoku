@@ -7,11 +7,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsundoku/main.dart';
 import 'package:tsundoku/src/app_scope.dart';
+import 'package:tsundoku/src/backup/backup_service.dart';
 import 'package:tsundoku/src/books/library_repository.dart';
 import 'package:tsundoku/src/books/models.dart';
 import 'package:tsundoku/src/covers/cover_store.dart';
 import 'package:tsundoku/src/db/database.dart';
 import 'package:tsundoku/src/settings/appearance.dart';
+import 'package:tsundoku/src/settings/view_settings.dart';
 import 'package:tsundoku/src/sources/book_source.dart';
 import 'package:tsundoku/src/theme/palette.dart';
 import 'package:tsundoku/src/ui/book_detail_screen.dart';
@@ -38,6 +40,24 @@ Future<void> _settle(WidgetTester tester) async {
   }
 }
 
+Future<AppServices> _services(AppDatabase db, BookLookup lookup, Directory tmp) async {
+  final library = LibraryRepository(db);
+  final covers = CoverStore(lookup, baseDir: () async => tmp);
+  return AppServices(
+    library: library,
+    lookup: lookup,
+    covers: covers,
+    appearance: await AppearanceSettings.load(),
+    view: await ViewSettings.load(),
+    backups: BackupService(
+      library: library,
+      covers: covers,
+      prefs: await SharedPreferences.getInstance(),
+      localDir: () async => Directory('${tmp.path}/backups'),
+    ),
+  );
+}
+
 void main() {
   testWidgets('empty library, then a book: grid, search with ALREADY OWNED, and the accent picker', (tester) async {
     SharedPreferences.setMockInitialValues({});
@@ -45,12 +65,7 @@ void main() {
     final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
     final lookup = BookLookup([_NoSource()]);
     final tmp = Directory.systemTemp.createTempSync('app_test');
-    final services = AppServices(
-      library: LibraryRepository(db),
-      lookup: lookup,
-      covers: CoverStore(lookup, baseDir: () async => tmp),
-      appearance: await AppearanceSettings.load(),
-    );
+    final services = await _services(db, lookup, tmp);
     await tester.pumpWidget(TsundokuApp(services: services));
     await _settle(tester);
     expect(find.text('Your library is empty'), findsOneWidget);
@@ -59,14 +74,13 @@ void main() {
     await _settle(tester);
     expect(find.text('1 book'), findsOneWidget);
     expect(find.text('The Salt Orchard'), findsWidgets);
-    // The grid item merges its children into one spoken label, so match part of it.
-    expect(find.bySemanticsLabel(RegExp('Physical')), findsOneWidget, reason: 'format bubble on the cover');
-    expect(find.text('Read'), findsNothing, reason: 'no status bubble until a status is set');
+    expect(find.byIcon(Icons.menu_book_outlined), findsOneWidget, reason: 'Physical bubble on the cover');
+    expect(find.text('Read'), findsOneWidget, reason: 'only the Read filter chip: no status bubble until a status is set');
 
     final id = (await tester.runAsync(() => services.library.watchAll().first))!.single.id;
     await tester.runAsync(() => services.library.update(id, const BookChanges(status: ReadingStatus.read)));
     await _settle(tester);
-    expect(find.text('Read'), findsOneWidget, reason: 'status bubble on the cover');
+    expect(find.text('Read'), findsNWidgets(2), reason: 'the filter chip and the status bubble on the cover');
 
     await tester.enterText(find.byType(TextField).first, 'orchard');
     await _settle(tester);
@@ -92,12 +106,7 @@ void main() {
     final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
     final lookup = BookLookup([_NoSource()]);
     final tmp = Directory.systemTemp.createTempSync('detail_test');
-    final services = AppServices(
-      library: LibraryRepository(db),
-      lookup: lookup,
-      covers: CoverStore(lookup, baseDir: () async => tmp),
-      appearance: await AppearanceSettings.load(),
-    );
+    final services = await _services(db, lookup, tmp);
     final repo = services.library;
     final id = (await tester.runAsync(() => repo.addManual(title: 'Carrie', format: OwnershipFormat.physical)))!;
     await tester.runAsync(() => repo.update(id, const BookChanges(status: ReadingStatus.tbr)));

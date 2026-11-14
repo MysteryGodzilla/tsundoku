@@ -3,17 +3,21 @@ library;
 
 import 'package:material_ui/material_ui.dart';
 
+import 'backup/backup_service.dart';
 import 'books/library_repository.dart';
 import 'covers/cover_store.dart';
 import 'settings/appearance.dart';
+import 'settings/view_settings.dart';
 import 'sources/book_source.dart';
 
 class AppServices {
-  AppServices({required this.library, required this.lookup, required this.covers, required this.appearance});
+  AppServices({required this.library, required this.lookup, required this.covers, required this.appearance, required this.view, required this.backups});
   final LibraryRepository library;
   final BookLookup lookup;
   final CoverStore covers;
   final AppearanceSettings appearance;
+  final ViewSettings view;
+  final BackupService backups;
 }
 
 class AppScope extends InheritedWidget {
