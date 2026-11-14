@@ -24,7 +24,7 @@ These are settled. A technical choice that breaks one of them is the wrong choic
 - Android phone first. An iPhone version may come later but isn't a priority. Desktop use
   (including a webcam for scanning) is wanted where possible.
 - A native-feeling app on the phone; a web app (PWA) only if native isn't workable.
-- Calm and minimal: clean layouts, a neutral palette, light and dark modes. Book covers are the
+- Calm and minimal: clean layouts, a neutral palette with one soft accent colour, light and dark modes. Book covers are the
   star, in a grid. No bookshelf graphics, no heavy animation, nothing that looks like social media.
 - Search is prominent and easy to reach, and results update as you type.
 - An owned book shows a clear **ALREADY OWNED** label in the results, with its cover and details.
@@ -177,6 +177,8 @@ until she's happy with the current one.
 - Spike, thrown away afterwards: an Expo app on her Android phone that scans a barcode, looks it up
   on Open Library, saves it to SQLite and finds it offline. The same on a laptop webcam.
 - Check Open Library's limits, terms and Kindle coverage; write the findings in `docs/`.
+- Mock-ups of the library grid and search in two or three soft accent colours, light and dark, for
+  the product owner to pick from.
 - **Done when:** the stack is in the decisions log, and the spike worked on her phone.
 
 ### Phase 1: the owned check, on her phone (offline only)
@@ -229,8 +231,9 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
   time unused: 30 days proposed.
 - ~~**Q4. Desktop first or later.**~~ Answered 2026-11-14: phone first. The computer version comes
   in Phase 4, after sync works.
-- **Q5. Look and feel.** Any colours, apps or websites whose look you like, to guide the first
-  design?
+- ~~**Q5. Look and feel.**~~ Answered 2026-11-14: a neutral background with **one soft accent colour**
+  for buttons and the ALREADY OWNED label. Which colour (sage, dusty blue, blush or another) is still
+  open: show her mock-ups to choose from in Phase 0.
 
 ## 6. Open (deferred in the brief)
 - Hosting provider and costs for a public service; email provider.
@@ -248,4 +251,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Q2: account sign-up gives a one-time recovery code to print or keep safe; it restores the library if the password and every device are lost | product owner |
 | 2026-11-14 | Q3: lock after 1 day without use, unlock with fingerprint, face or phone PIN; full logout only after a long time unused (30 days proposed). Refines the brief's "log out after inactivity" | product owner |
 | 2026-11-14 | Q4: Android phone first; the computer version follows in Phase 4, after sync | product owner |
+| 2026-11-14 | Q5: neutral palette with one soft accent colour for buttons and the ALREADY OWNED label; the colour is chosen from mock-ups | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
