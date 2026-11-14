@@ -6,7 +6,8 @@ plugins {
 
 android {
     namespace = "io.github.mysterygodzilla.tsundoku"
-    compileSdk = flutter.compileSdkVersion
+    // 37: permission_handler needs it (Flutter 3.50 defaults to 36)
+    compileSdk = 37
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

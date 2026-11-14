@@ -252,6 +252,13 @@ The core job, with no accounts and no server.
 - Light and dark modes. Cover cache that can be cleared.
 - **Done when:** she can catalogue real books and use it in a shop with flight mode on. Install by
   a direct APK (no app store needed yet).
+- **First version built 2026-11-14** (in `app/`), waiting for her to try it on her phone. Done:
+  scan, typed ISBN, Open Library search and hand entry (each confirmed before adding); the cover
+  grid; offline search with ALREADY OWNED across editions and formats; book details with reading
+  status, rating, purchase date, genres (suggested from Open Library), notes, her own cover photo
+  and permanent delete; Settings with the four accents and Light/Dark; saved covers that can be
+  cleared without losing her photos. 9 automated tests. Not yet: the Inter font from the mock-ups
+  (the phone's own font is used for now).
 
 ### Phase 2: organise and protect
 - Filters (author, genre, format, status, rating) and sorting (title, author, date added, rating).

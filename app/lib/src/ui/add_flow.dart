@@ -151,6 +151,9 @@ void _showAdded(BuildContext context, String id, String message) {
   final messenger = ScaffoldMessenger.of(context);
   messenger.showSnackBar(SnackBar(
     content: Text(message),
+    // A SnackBar with an action stays until dismissed unless told otherwise.
+    persist: false,
+    duration: const Duration(seconds: 5),
     action: SnackBarAction(
       label: 'Details',
       onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => BookDetailScreen(bookId: id))),

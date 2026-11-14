@@ -11,7 +11,7 @@ you can check in a few seconds whether you already have one.
 - Works offline. Your library is yours: nobody else, not even whoever runs the server, can read it.
 - Free and open source. No ads, no social features, no subscriptions.
 
-**Status:** planning. Nothing to install yet. See the [roadmap](docs/roadmap.md).
+**Status:** Phase 1, the first Android version, in testing. See the [roadmap](docs/roadmap.md).
 
 Book information and covers come from [Open Library](https://openlibrary.org).
 

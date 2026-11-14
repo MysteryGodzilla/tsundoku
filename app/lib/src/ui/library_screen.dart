@@ -86,7 +86,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
                       IconButton.filled(
                         tooltip: 'Scan a barcode',
-                        icon: const Icon(Icons.qr_code_scanner),
+                        // SearchBar greys its trailing icons, so the colour must be set here.
+                        icon: Icon(Icons.qr_code_scanner, color: cs.onPrimary),
                         onPressed: () => scanAndShow(context),
                       ),
                     ],

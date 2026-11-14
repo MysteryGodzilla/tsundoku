@@ -77,6 +77,14 @@ class _FindScreenState extends State<FindScreen> {
     }
   }
 
+  /// After she adds a book, mark it (and other editions of it) ALREADY OWNED straight away.
+  Future<void> _refreshOwned() async {
+    if (!mounted) return;
+    final library = AppScope.of(context).library;
+    final updated = <(Candidate, LibraryBook?)>[for (final (c, _) in _results) (c, await library.findOwned(c))];
+    if (mounted) setState(() => _results = updated);
+  }
+
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
@@ -115,7 +123,10 @@ class _FindScreenState extends State<FindScreen> {
               final (c, owned) = _results[i];
               final meta = [c.authorLine, c.publishedDate].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
               return InkWell(
-                onTap: () => showCandidateSheet(context, c, owned: owned),
+                onTap: () async {
+                  await showCandidateSheet(context, c, owned: owned);
+                  await _refreshOwned();
+                },
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
