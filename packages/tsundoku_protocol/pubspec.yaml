@@ -1,0 +1,20 @@
+name: tsundoku_protocol
+description: Shared by the Tsundoku app and server: keys, sealing, authenticator codes.
+publish_to: none
+version: 0.1.0
+# repository: https://github.com/my_org/my_repo
+
+environment:
+  sdk: ^3.14.0
+
+# Add regular dependencies here.
+dependencies:
+  crypto: ^3.0.8
+  cryptography: ^2.9.0
+  hashlib: ^2.4.2
+  # path: ^1.9.0
+
+dev_dependencies:
+  convert: ^3.1.2
+  lints: ^6.0.0
+  test: ^1.25.6
