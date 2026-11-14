@@ -248,6 +248,13 @@ class AccountService extends ChangeNotifier {
     await _forget();
   }
 
+  /// A signed-in call to the server, for sync. Signs out here if the server has ended the session.
+  Future<Map<String, Object?>> authed(String method, String path, {Map<String, Object?>? body}) {
+    final s = _state;
+    if (s == null) throw AccountProblem('Not signed in.');
+    return _guard(() => _call(method, s.serverUrl, path, body: body, token: _token));
+  }
+
   /// If the server says the session has ended, forget it here too.
   Future<T> _guard<T>(Future<T> Function() f) async {
     try {

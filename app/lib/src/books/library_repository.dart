@@ -220,6 +220,9 @@ class LibraryRepository {
     if (s != null) await _log(id, 'created', s);
   }
 
+  /// Announce her own photo again under a fresh id (the first upload of a library).
+  Future<void> logPhoto(String id) => _log(id, 'photo', _uuid.v4());
+
   /// Applying changes from another device: plain writes, nothing logged.
   Future<void> insertSnapshot(LibraryBook b) => db.transaction(() async {
         await db.into(db.books).insertOnConflictUpdate(b.row);
