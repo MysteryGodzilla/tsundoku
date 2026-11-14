@@ -295,7 +295,9 @@ The core job, with no accounts and no server.
   automatic backups go to a folder on the phone. 0.2.1 adds **Save a copy to…** (a backup file to
   Google Drive or anywhere Android can save one), **Restore from a file…** (the way back on a new
   phone), and **Save to…** for the spreadsheet beside Share. Automatic copies off the phone come with
-  Phase 3's sync. Waiting for her sign-off on filters and sorting.
+  Phase 3's sync. 0.2.2: on her phone Android's save dialog doesn't offer Drive or OneDrive either, so
+  "Save a copy" offers **Share…** too ("Save to Drive", "Upload to OneDrive"); spreadsheet Save and
+  Share both work. Waiting for her sign-off on filters and sorting.
 
 ### Phase 3: accounts and sync (self-hosted server)
 - The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
@@ -385,3 +387,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Searching ignores filters (the owned check must see the whole library); author sort is by surname | Mystery (recommended) |
 | 2026-11-14 | Drive/OneDrive can't be backup folders (their apps don't share folders with other apps): automatic backups stay in a phone folder; "Save a copy to…" and "Restore from a file…" cover Drive until Phase 3 | Mystery (tested) |
 | 2026-11-14 | Export offers Save to… (Downloads, Drive) as well as Share… | Mystery |
+| 2026-11-14 | A manual backup copy can be shared to Drive or OneDrive (their share entries are the only way in); automatic off-phone copies wait for Phase 3 | Mystery (tested) |

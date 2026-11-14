@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app_info.dart';
@@ -50,7 +55,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Save to… (Android's save dialog) or Share… (the share sheet).
-  Future<String?> _saveOrShare(String title, String saveHint) => showModalBottomSheet<String>(
+  Future<String?> _saveOrShare(String title, String saveHint, {String shareHint = 'Email it, or send it to another app'}) =>
+      showModalBottomSheet<String>(
         context: context,
         builder: (c) => SafeArea(
           child: Padding(
@@ -69,7 +75,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ListTile(
                 leading: const Icon(Icons.share_outlined),
                 title: const Text('Share…'),
-                subtitle: const Text('Email it, or send it to another app'),
+                subtitle: Text(shareHint),
                 onTap: () => Navigator.pop(c, 'share'),
               ),
             ]),
@@ -100,11 +106,23 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// A one-off copy anywhere Android can save a file, Google Drive included.
+  /// A manual copy: Save to… (a phone folder, Downloads) or Share… (on her phone, Google Drive and
+  /// OneDrive only accept files through their share entries, "Save to Drive", "Upload to OneDrive").
   Future<void> _saveCopy(BackupService b) async {
     final messenger = ScaffoldMessenger.of(context);
+    final how = await _saveOrShare('Save a backup copy', 'A folder on this phone, or Downloads', shareHint: 'Google Drive, OneDrive, email');
+    if (how == null) return;
     try {
-      final uri = await FilePicker.saveFile(fileName: b.newBackupName(), bytes: await b.backupBytes(), mimeType: 'application/zip');
-      if (uri != null) messenger.showSnackBar(const SnackBar(content: Text('Backup copy saved')));
+      final name = b.newBackupName();
+      final bytes = await b.backupBytes();
+      if (how == 'save') {
+        final uri = await FilePicker.saveFile(fileName: name, bytes: bytes, mimeType: 'application/zip');
+        if (uri != null) messenger.showSnackBar(const SnackBar(content: Text('Backup copy saved')));
+      } else {
+        final file = File(p.join((await getTemporaryDirectory()).path, name));
+        await file.writeAsBytes(bytes, flush: true);
+        await SharePlus.instance.share(ShareParams(files: [XFile(file.path, mimeType: 'application/zip')], subject: 'Tsundoku backup'));
+      }
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Couldn\'t save the copy.')));
     }
@@ -194,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const Divider(indent: 16, endIndent: 16),
         ListTile(
           title: const Text('Save a copy to…'),
-          subtitle: const Text('Google Drive, for example, so it\'s safe if the phone is lost'),
+          subtitle: const Text('Share it to Google Drive, for example, so it\'s safe if the phone is lost'),
           trailing: const Icon(Icons.cloud_upload_outlined),
           onTap: () => _saveCopy(b),
         ),
