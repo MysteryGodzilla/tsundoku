@@ -208,7 +208,20 @@ class _GridBook extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        BookCover(book: book),
+        Stack(children: [
+          BookCover(book: book),
+          // Her request (2026-11-14): status in a little bubble when set, and Kindle/Physical.
+          Positioned(
+            left: 6,
+            right: 6,
+            bottom: 6,
+            child: Row(children: [
+              if (book.status != null) CoverBubble(label: book.status!.label),
+              const Spacer(),
+              CoverBubble(icon: formatIcon(book.format), semanticLabel: book.format.label),
+            ]),
+          ),
+        ]),
         const SizedBox(height: 6),
         Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         Text(book.authorLine, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: muted)),

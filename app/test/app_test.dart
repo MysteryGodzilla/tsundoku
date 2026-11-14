@@ -58,6 +58,14 @@ void main() {
     await _settle(tester);
     expect(find.text('1 book'), findsOneWidget);
     expect(find.text('The Salt Orchard'), findsWidgets);
+    // The grid item merges its children into one spoken label, so match part of it.
+    expect(find.bySemanticsLabel(RegExp('Physical')), findsOneWidget, reason: 'format bubble on the cover');
+    expect(find.text('Read'), findsNothing, reason: 'no status bubble until a status is set');
+
+    final id = (await tester.runAsync(() => services.library.watchAll().first))!.single.id;
+    await tester.runAsync(() => services.library.update(id, const BookChanges(status: ReadingStatus.read)));
+    await _settle(tester);
+    expect(find.text('Read'), findsOneWidget, reason: 'status bubble on the cover');
 
     await tester.enterText(find.byType(TextField).first, 'orchard');
     await _settle(tester);

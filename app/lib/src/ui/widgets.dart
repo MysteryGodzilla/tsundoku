@@ -23,7 +23,8 @@ class PlaceholderCover extends StatelessWidget {
     final (bg, fg) = placeholderCovers[title.hashCode.abs() % placeholderCovers.length];
     return Container(
       color: bg,
-      padding: EdgeInsets.all(compact ? 6 : 10),
+      // Room at the bottom for the status and format bubbles laid over grid covers.
+      padding: compact ? const EdgeInsets.all(6) : const EdgeInsets.fromLTRB(10, 10, 10, 36),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text(title,
             maxLines: compact ? 4 : 5,
@@ -104,6 +105,40 @@ class CandidateCover extends StatelessWidget {
           child: uri == null
               ? placeholder
               : Image.network('$uri', fit: BoxFit.cover, semanticLabel: 'Cover of ${candidate.title}', errorBuilder: (_, _, _) => placeholder),
+        ),
+      ),
+    );
+  }
+}
+
+IconData formatIcon(OwnershipFormat f) => f == OwnershipFormat.kindle ? Icons.tablet_android_outlined : Icons.menu_book_outlined;
+
+/// A small pill laid over a cover: a reading status, or the Kindle/Physical icon.
+class CoverBubble extends StatelessWidget {
+  const CoverBubble({super.key, this.label, this.icon, this.semanticLabel});
+  final String? label;
+  final IconData? icon;
+  final String? semanticLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Semantics(
+      label: semanticLabel ?? label,
+      child: Container(
+        height: 24,
+        constraints: const BoxConstraints(minWidth: 24),
+        padding: EdgeInsets.symmetric(horizontal: label != null ? 9 : 0),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: cs.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 1))],
+        ),
+        child: ExcludeSemantics(
+          child: label != null
+              ? Text(label!, style: TextStyle(color: cs.onPrimaryContainer, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.3))
+              : Icon(icon, size: 14, color: cs.onPrimaryContainer),
         ),
       ),
     );

@@ -169,7 +169,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   if (b.authorLine.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(b.authorLine, style: tt.titleMedium?.copyWith(color: muted))),
                   const SizedBox(height: 12),
                   Chip(
-                    avatar: Icon(b.format == OwnershipFormat.kindle ? Icons.tablet_android_outlined : Icons.menu_book_outlined, size: 18),
+                    avatar: Icon(formatIcon(b.format), size: 18),
                     label: Text(b.format.label),
                   ),
                 ]),

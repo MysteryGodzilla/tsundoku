@@ -25,6 +25,8 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   (including a webcam for scanning) is wanted where possible.
 - A native-feeling app on the phone; a web app (PWA) only if native isn't workable.
 - Calm and minimal: clean layouts, a neutral palette with one soft accent colour, light and dark modes.
+- In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
+  small Kindle or Physical icon.
 - Settings has a simple appearance picker: one of **four accent colours** (Sage, Dusty blue, Blush,
   Heather) and **Light or Dark**. Nothing more (no custom colours, fonts or themes). Book covers are the
   star, in a grid. No bookshelf graphics, no heavy animation, nothing that looks like social media.
@@ -259,6 +261,8 @@ The core job, with no accounts and no server.
   and permanent delete; Settings with the four accents and Light/Dark; saved covers that can be
   cleared without losing her photos. 9 automated tests. Not yet: the Inter font from the mock-ups
   (the phone's own font is used for now).
+- **Her first try, 2026-11-14:** adding, searching, hand entry and notes all work on her phone. Her
+  request, done in 0.1.1: the status bubble and Kindle/Physical icon on grid covers.
 
 ### Phase 2: organise and protect
 - Filters (author, genre, format, status, rating) and sorting (title, author, date added, rating).
@@ -339,3 +343,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Passkey project domain: mysterygodzilla.github.io (GitHub Pages), hosting only `assetlinks.json` | Mystery |
 | 2026-11-14 | Q7: Open Library only for now. Lookups built behind a `BookSource` interface with per-book identifiers, so more sources can be added later. Trove likely next (key applied for); Inventaire a possible open backup; Google Books and ISBNdb (paid) not used | Mystery |
 | 2026-11-14 | Phase 0 done: scanning, Open Library lookup, offline search and passkey PRF recovery all worked on her phone. Passkey recovery confirmed; the recovery code stays only as a fallback for phones without PRF | Mystery (tested) |
+| 2026-11-14 | Grid covers show a small status bubble (when set) and a Kindle/Physical icon | product owner |
