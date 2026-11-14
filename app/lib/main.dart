@@ -8,6 +8,7 @@ import 'src/settings/appearance.dart';
 import 'src/sources/book_source.dart';
 import 'src/sources/open_library_source.dart';
 import 'src/theme/theme.dart';
+import 'src/ui/keyboard_guard.dart';
 import 'src/ui/library_screen.dart';
 
 Future<void> main() async {
@@ -44,6 +45,7 @@ class TsundokuApp extends StatelessWidget {
                 AppearanceMode.light => ThemeMode.light,
                 AppearanceMode.dark => ThemeMode.dark,
               },
+              builder: (context, child) => KeyboardInsetsGuard(child: child!),
               home: const LibraryScreen(),
             );
           },

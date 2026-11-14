@@ -32,6 +32,8 @@ All commands run in `app/` (Flutter 3.50 stable, Dart 3.14).
 - Every write to the library goes through `LibraryRepository`, so the change log stays complete for sync.
 - Gotchas: `kotlin.incremental=false` in `android/gradle.properties` (Kotlin's cache breaks across
   drives on Windows); widget tests need `closeStreamsSynchronously` and real-time pumps (see `test/app_test.dart`).
+- Keep `KeyboardInsetsGuard` (`app/lib/src/ui/keyboard_guard.dart`) around the app: it works around a
+  Flutter engine bug that leaves a blank keyboard-sized area after switching apps with the keyboard open.
 - No AI attribution in commits or pull requests.
 - User-facing text is plain, friendly English (Australian/British spelling: "colour",
   "catalogue"). No jargon in the app.
