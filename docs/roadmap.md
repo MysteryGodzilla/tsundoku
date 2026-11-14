@@ -195,7 +195,7 @@ The core job, with no accounts and no server.
 - **Done when:** she can lose her phone and get her library back from a backup.
 
 ### Phase 3: accounts and sync (self-hosted server)
-- The server: accounts, email verification, password reset, change email, inactivity logout,
+- The server: accounts, email verification, recovery code at sign-up, password reset, change email, inactivity logout,
   delete account.
 - End-to-end encrypted sync between devices; conflict questions; the unsynced-changes list.
 - Server backups and restore; the admin view (counts, suspend, health) with no library access.
@@ -220,9 +220,9 @@ The core job, with no accounts and no server.
 Plain-language questions about how the app should behave. Ask one at a time; "skip" leaves it open.
 
 - ~~**Q1. Name.**~~ Answered 2026-11-14: "Tsundoku" is a working title; the real name is picked before the public release.
-- **Q2. Forgotten password and lost phone.** Because nobody else can read your library, nobody can
-  unlock it for you either. When you set up an account, should the app give you a recovery code to
-  print or keep somewhere safe (recommended), or rely on your other devices and backups?
+- ~~**Q2. Forgotten password and lost phone.**~~ Answered 2026-11-14: a recovery code. At sign-up
+  the app shows a code once and asks her to print it or keep it somewhere safe; with it she can always
+  get her library back.
 - **Q3. Logging out.** On a phone, being logged out often gets in the way of a quick check in a
   shop. Would you prefer the app to lock after a while and open with your fingerprint or PIN, or to
   log you out fully? How long before it locks: 15 minutes, an hour, a day?
@@ -244,4 +244,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Product rules in section 2 taken from the product owner's brief of 2026-11-14 | product owner |
 | 2026-11-14 | Platform: native Android app first, iPhone later and not a priority, PWA only as a fallback (the brief's platform section supersedes its "platform undecided" list) | product owner |
 | 2026-11-14 | Q1: "Tsundoku" is a working title until a name is chosen before the public release | product owner |
+| 2026-11-14 | Q2: account sign-up gives a one-time recovery code to print or keep safe; it restores the library if the password and every device are lost | product owner |
 | 2026-11-14 | Product and experience decisions belong to the product owner; technical choices may change if the product rules hold | Mystery |
