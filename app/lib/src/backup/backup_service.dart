@@ -96,6 +96,11 @@ class BackupService extends ChangeNotifier {
     await backupNow();
   }
 
+  /// The whole library as a backup file, for "Save a copy to…".
+  Future<Uint8List> backupBytes() => _encodeLibrary();
+
+  String newBackupName() => backupFileName(_clock());
+
   Future<Uint8List> _encodeLibrary() async {
     final books = await library.allBooks();
     final photos = <String, Uint8List>{};

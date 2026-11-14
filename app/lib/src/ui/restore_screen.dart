@@ -1,6 +1,8 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../app_scope.dart';
+import '../backup/backup_format.dart';
 import '../backup/backup_store.dart';
 import 'widgets.dart';
 
@@ -37,13 +39,25 @@ class _RestoreScreenState extends State<RestoreScreen> {
 
   String _when(DateTime t) => '${formatDate(t)}, ${two(t.hour)}:${two(t.minute)}';
 
-  Future<void> _restore(BackupStore from, BackupEntry e) async {
+  Future<void> _restore(BackupStore from, BackupEntry e) =>
+      _confirmAndRestore(() => AppScope.of(context).backups.peek(e, from: from));
+
+  /// A backup file from anywhere Android can open one (Google Drive, Downloads...): the way back
+  /// on a new phone.
+  Future<void> _restoreFromFile() async {
+    final picked = await FilePicker.pickFiles();
+    final file = picked.firstOrNull;
+    if (file == null) return;
+    await _confirmAndRestore(() async => decodeBackup(await file.readAsBytes()));
+  }
+
+  Future<void> _confirmAndRestore(Future<BackupContents> Function() load) async {
     final services = AppScope.of(context);
     final messenger = ScaffoldMessenger.of(context);
     final nav = Navigator.of(context);
     setState(() => _working = true);
     try {
-      final contents = await services.backups.peek(e, from: from);
+      final contents = await load();
       final current = await services.library.count();
       if (!mounted) return;
       final ok = await showDialog<bool>(
@@ -51,7 +65,7 @@ class _RestoreScreenState extends State<RestoreScreen> {
         builder: (c) => AlertDialog(
           title: const Text('Restore this backup?'),
           content: Text(
-            'The backup from ${_when(e.createdAt)} has ${contents.books.length} book${contents.books.length == 1 ? '' : 's'}. '
+            'The backup from ${_when(contents.createdAt)} has ${contents.books.length} book${contents.books.length == 1 ? '' : 's'}. '
             'It will replace the $current book${current == 1 ? '' : 's'} on this phone.'
             '${current > 0 ? '\n\nA copy of your library as it is now is kept on this phone first, in case you change your mind.' : ''}',
           ),
@@ -92,11 +106,21 @@ class _RestoreScreenState extends State<RestoreScreen> {
                 'Restoring replaces the books on this phone with the ones in the backup.',
                 style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
               ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _working ? null : _restoreFromFile,
+                icon: const Icon(Icons.file_open_outlined),
+                label: const Text('Restore from a file…'),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('A copy you saved to Google Drive, for example.', style: tt.bodySmall?.copyWith(color: cs.onSurfaceVariant)),
+              ),
               if (!any)
                 Padding(
-                  padding: const EdgeInsets.only(top: 32),
+                  padding: const EdgeInsets.only(top: 24),
                   child: Text(
-                    'No backups found. On a new phone, first choose the folder your backups are in (Settings, Backups, Where).',
+                    'No backups found in Tsundoku or your backup folder. On a new phone, choose the folder your backups are in (Settings, Backups, Where), or restore from a file.',
                     style: tt.bodyLarge,
                   ),
                 ),

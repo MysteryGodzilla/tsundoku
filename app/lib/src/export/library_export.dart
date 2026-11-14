@@ -4,6 +4,7 @@ library;
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
@@ -51,14 +52,28 @@ Uint8List buildLibraryXlsx(List<LibraryBook> books) {
   );
 }
 
-/// Writes the spreadsheet and opens Android's share sheet (save to Drive, email it, and so on).
+const xlsxMime = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+String spreadsheetFileName(DateTime now) => 'Tsundoku library ${_date(now)}.xlsx';
+
+/// Android's save dialog (Downloads, Google Drive and so on). Returns false if she backed out.
+Future<bool> saveLibrarySpreadsheet(List<LibraryBook> books) async {
+  final uri = await FilePicker.saveFile(
+    fileName: spreadsheetFileName(DateTime.now()),
+    bytes: buildLibraryXlsx(books),
+    mimeType: xlsxMime,
+  );
+  return uri != null;
+}
+
+/// Writes the spreadsheet and opens Android's share sheet (email it, and so on).
 Future<void> shareLibrarySpreadsheet(List<LibraryBook> books) async {
   final now = DateTime.now();
   final dir = await getTemporaryDirectory();
-  final file = File(p.join(dir.path, 'Tsundoku library ${_date(now)}.xlsx'));
+  final file = File(p.join(dir.path, spreadsheetFileName(now)));
   await file.writeAsBytes(buildLibraryXlsx(books), flush: true);
   await SharePlus.instance.share(ShareParams(
-    files: [XFile(file.path, mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')],
+    files: [XFile(file.path, mimeType: xlsxMime)],
     subject: 'My Tsundoku library',
   ));
 }

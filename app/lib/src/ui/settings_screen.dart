@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -48,11 +49,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await _refreshSize();
   }
 
+  /// Save to… (Android's save dialog) or Share… (the share sheet).
+  Future<String?> _saveOrShare(String title, String saveHint) => showModalBottomSheet<String>(
+        context: context,
+        builder: (c) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 16),
+            child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Text(title, style: Theme.of(c).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.save_alt),
+                title: const Text('Save to…'),
+                subtitle: Text(saveHint),
+                onTap: () => Navigator.pop(c, 'save'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.share_outlined),
+                title: const Text('Share…'),
+                subtitle: const Text('Email it, or send it to another app'),
+                onTap: () => Navigator.pop(c, 'share'),
+              ),
+            ]),
+          ),
+        ),
+      );
+
   Future<void> _export() async {
     final messenger = ScaffoldMessenger.of(context);
+    final books = await AppScope.of(context).library.allBooks();
+    final how = await _saveOrShare('Export to spreadsheet', 'Downloads, Google Drive and so on');
+    if (how == null) return;
     try {
-      final books = await AppScope.of(context).library.allBooks();
-      await shareLibrarySpreadsheet(books);
+      if (how == 'save') {
+        if (await saveLibrarySpreadsheet(books)) messenger.showSnackBar(const SnackBar(content: Text('Spreadsheet saved')));
+      } else {
+        await shareLibrarySpreadsheet(books);
+      }
     } catch (_) {
       messenger.showSnackBar(const SnackBar(content: Text('Couldn\'t make the spreadsheet.')));
     }
@@ -62,6 +97,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = await b.backupNow();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ok ? 'Backed up' : (b.lastError ?? 'The backup didn\'t work.'))));
+  }
+
+  /// A one-off copy anywhere Android can save a file, Google Drive included.
+  Future<void> _saveCopy(BackupService b) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final uri = await FilePicker.saveFile(fileName: b.newBackupName(), bytes: await b.backupBytes(), mimeType: 'application/zip');
+      if (uri != null) messenger.showSnackBar(const SnackBar(content: Text('Backup copy saved')));
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text('Couldn\'t save the copy.')));
+    }
   }
 
   Future<void> _chooseWhere(BackupService b) async {
@@ -77,14 +123,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.folder_outlined),
-              title: const Text('Choose a folder'),
-              subtitle: const Text('Google Drive, for example. Backups there survive losing your phone.'),
+              title: const Text('Choose a folder on this phone'),
+              subtitle: const Text('Documents, for example. Backups there are kept even if Tsundoku is uninstalled.'),
               onTap: () => Navigator.pop(c, 'folder'),
             ),
             ListTile(
               leading: const Icon(Icons.phone_android),
-              title: const Text('On this phone only'),
-              subtitle: const Text('Lost if the phone is lost or Tsundoku is uninstalled.'),
+              title: const Text('Inside Tsundoku'),
+              subtitle: const Text('Lost if Tsundoku is uninstalled.'),
               onTap: () => Navigator.pop(c, 'phone'),
             ),
           ]),
@@ -105,9 +151,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         ListTile(
           title: const Text('Where'),
-          subtitle: Text(b.folderUri == null
-              ? 'On this phone only. Choose a folder (like Google Drive) so a backup survives losing your phone.'
-              : b.folderName ?? 'The folder you chose'),
+          subtitle: Text(b.folderUri == null ? 'Inside Tsundoku. Choose a folder so backups are kept if the app is uninstalled.' : b.folderName ?? 'The folder you chose'),
           trailing: Text(b.folderUri == null ? 'Choose' : 'Change', style: TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)),
           onTap: () => _chooseWhere(b),
         ),
@@ -146,6 +190,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             style: b.lastError == null ? null : TextStyle(color: cs.error),
           ),
           trailing: TextButton(onPressed: () => _backupNow(b), child: const Text('Back up now')),
+        ),
+        const Divider(indent: 16, endIndent: 16),
+        ListTile(
+          title: const Text('Save a copy to…'),
+          subtitle: const Text('Google Drive, for example, so it\'s safe if the phone is lost'),
+          trailing: const Icon(Icons.cloud_upload_outlined),
+          onTap: () => _saveCopy(b),
         ),
         const Divider(indent: 16, endIndent: 16),
         ListTile(

@@ -289,7 +289,13 @@ The core job, with no accounts and no server.
   something changed, to a folder she picks (Google Drive, say) or on the phone until she does; kept 7,
   14, 30 or 90 days, the newest always kept; "Back up now"; restore lists backups in the folder and on
   the phone and saves a safety copy first. Backups aren't encrypted yet (Phase 3, with accounts).
-  Waiting for her phone test: back up to Drive, then restore.
+- **Tested on her phone 2026-11-14:** backing up to a phone folder and restoring both work; export,
+  chips and sorting work. Found: **Google Drive and OneDrive can't be chosen as the backup folder.**
+  Their Android apps let other apps save and open single files, but not use their folders, so
+  automatic backups go to a folder on the phone. 0.2.1 adds **Save a copy to…** (a backup file to
+  Google Drive or anywhere Android can save one), **Restore from a file…** (the way back on a new
+  phone), and **Save to…** for the spreadsheet beside Share. Automatic copies off the phone come with
+  Phase 3's sync. Waiting for her sign-off on filters and sorting.
 
 ### Phase 3: accounts and sync (self-hosted server)
 - The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
@@ -377,3 +383,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Reading pinned only in the default sort; in Title, Author and Rating sorts it's the tie-breaker | Mystery |
 | 2026-11-14 | Filters: chips for format and status, a sort menu, a Filters button for author, genre, rating | Mystery |
 | 2026-11-14 | Searching ignores filters (the owned check must see the whole library); author sort is by surname | Mystery (recommended) |
+| 2026-11-14 | Drive/OneDrive can't be backup folders (their apps don't share folders with other apps): automatic backups stay in a phone folder; "Save a copy to…" and "Restore from a file…" cover Drive until Phase 3 | Mystery (tested) |
+| 2026-11-14 | Export offers Save to… (Downloads, Drive) as well as Share… | Mystery |
