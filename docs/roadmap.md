@@ -121,17 +121,19 @@ If the server can't read a library, it can't rescue one either, so recovery is s
   spreadsheet export stay as further safety nets.
 
 ### 3.2 App platform
-*Recommended:* **React Native with Expo, in TypeScript.** One codebase gives a true native Android
-app first, an iPhone app later without a rewrite, and a web build for desktop. The sync server is
-written in TypeScript too, so the whole project is one language.
-- Barcode scanning: the native camera scanner on Android (fast, works in poor light); a JavaScript
-  barcode library (ZXing family) on desktop browsers, not a single browser's built-in detector.
-- Local database: SQLite on the phone; SQLite in the browser (WebAssembly, stored in the browser's
-  private file system) for the web build. Covers cached as files.
-- *Alternative:* Flutter, which is similar in reach. Either works; Expo is recommended for the
-  shared language with the server and the size of its ecosystem.
-- To prove in the Phase 0 spike: scanning on a real Android phone and a laptop webcam, and offline
-  SQLite search on both.
+**Decided 2026-11-14: Flutter (Dart)**, with the server in Dart too, so the whole project is one
+language. One codebase gives a native Android app first, an iPhone app later without a rewrite, and
+a web build (or a Windows app) for desktop. Why Flutter over Expo:
+[stack-comparison.md](stack-comparison.md).
+- Barcode scanning: `mobile_scanner`, with ML Kit on Android (fast, works in poor light) and ZXing
+  in desktop browsers, not a single browser's built-in detector.
+- Local database: SQLite through `drift`, on the phone and in the browser (WebAssembly, stored in
+  the browser's private file system). Covers cached as files.
+- Look: Material 3 themed from one soft accent colour, light and dark.
+- App lock: `local_auth` (fingerprint, face or phone PIN).
+- To prove in the Phase 0 spike: scanning on a real Android phone and a laptop webcam, offline
+  search on both, and passkey PRF on her phone. If Flutter's passkey PRF fails there, Expo is the
+  fallback (decided before any real code).
 
 ### 3.3 Sync
 - Every change is recorded on the device as a small event (field X of book Y set to Z, at time T,
@@ -145,8 +147,7 @@ written in TypeScript too, so the whole project is one language.
   a list of unsynced changes.
 
 ### 3.4 Server (optional, self-hostable)
-- *Recommended:* a small Node/TypeScript server with SQLite (PostgreSQL optional for big
-  installations), shipped as one Docker image plus a plain install guide. It handles accounts,
+- A small Dart server (`shelf`) with SQLite (PostgreSQL optional for big installations), shipped as one Docker image plus a plain install guide. It handles accounts,
   storing encrypted events, backups and admin counts.
 - Passwords are never stored in a form the server can use to read data: login and encryption use
   separate keys derived from the password on the device (an OPAQUE- or SRP-style login, or Argon2id
@@ -186,13 +187,13 @@ Each phase ends with something the product owner can hold and try. Nothing moves
 until she's happy with the current one.
 
 ### Phase 0: decide and prove (before any real code)
-- Approve the technical choices in section 3 (Mystery; licence done: MIT) and answer the questions in section 5 (the
+- Approve the technical choices in section 3 (Mystery; done: MIT licence, Flutter + Dart) and answer the questions in section 5 (the
   product owner).
-- Spike, thrown away afterwards: an Expo app on her Android phone that scans a barcode, looks it up
+- Spike, thrown away afterwards: a Flutter app on her Android phone that scans a barcode, looks it up
   on Open Library, saves it to SQLite and finds it offline. The same on a laptop webcam.
-- Passkey test on her phone: create a passkey in her Google account from the Expo app, read its PRF
-  secret, and get the same secret back after reinstalling the app. If this fails, use the recovery
-  code fallback.
+- Passkey test on her phone: create a passkey in her Google account from the Flutter app, read its PRF
+  secret, and get the same secret back after reinstalling the app. If this fails, try the Expo
+  fallback before settling for the recovery code.
 - Check Open Library's limits, terms and Kindle coverage; write the findings in `docs/`.
 - Mock-ups of the library grid and search in two or three soft accent colours, light and dark, for
   the product owner to pick from.
@@ -274,3 +275,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Licence: MIT | Mystery |
 | 2026-11-14 | Recovery: authenticator app (TOTP) for password resets; a passkey saved in her Google account unlocks the library on a new phone; a written recovery code only if passkeys fail the Phase 0 test. Replaces Q2's recovery code | Mystery |
 | 2026-11-14 | Email optional: the email address is the login name; servers work without mail; alerts in the app; verification emails only when mail is set up. Replaces the brief's required email verification and reset emails | Mystery |
+| 2026-11-14 | Stack: Flutter (Dart) app, `drift` SQLite, `mobile_scanner`; Dart (`shelf`) server. Expo is the fallback if passkey PRF fails in Phase 0 | Mystery |

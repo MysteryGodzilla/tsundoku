@@ -4,7 +4,8 @@ Tsundoku: a private, offline-first catalogue of the books you own, built so you 
 No code yet; the plan is in [docs/roadmap.md](docs/roadmap.md).
 
 ## Build and test
-- TODO: set when the stack is chosen (roadmap, Phase 0).
+- Stack: Flutter (Dart) app and a Dart server ([docs/roadmap.md](docs/roadmap.md), section 3).
+- TODO: build, test and lint commands once the Phase 0 spike sets up the project.
 
 ## Layout
 - `docs/`: the roadmap, decisions log and design notes.

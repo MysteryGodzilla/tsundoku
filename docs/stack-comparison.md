@@ -28,7 +28,8 @@ date; anything marked *verify* is to be confirmed in the Phase 0 spike.
 | Tools needed here | Node 26 (installed), Android SDK and a JDK (not installed) | Flutter SDK, Android SDK and a JDK (none installed) |
 | Web download size | Smaller | Larger first load (a few MB); fine once cached as a PWA |
 
-## Verdict (recommendation)
+## Verdict
+**Decided 2026-11-14: Flutter + Dart server** (Mystery). The reasoning:
 For Phases 1 to 3 (phone only) the two are about even. The difference is Phase 4: Flutter's web
 scanning and browser database are mature, while Expo's are alpha or would need our own work. So
 **Flutter is recommended**, with a Dart server to keep one language. Expo stays the fallback if the
