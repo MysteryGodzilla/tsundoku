@@ -69,8 +69,9 @@ class _AccountScreenState extends State<AccountScreen> {
         key: _form,
         child: ListView(padding: EdgeInsets.fromLTRB(20, 0, 20, 48 + MediaQuery.paddingOf(context).bottom), children: [
           Text(
-            'Keep your library on more than one device. Your books are locked on this phone before they\'re sent: '
-            'nobody else can read them, not even whoever runs the server.',
+            'Optional. Sync keeps your library on more than one device through a Tsundoku server. '
+            'Your books are locked on this phone before they\'re sent: nobody else can read them, not even whoever runs the server. '
+            'You can stop at any time; your books stay on this phone.',
             style: tt.bodyMedium?.copyWith(color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 20),

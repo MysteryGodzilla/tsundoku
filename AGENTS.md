@@ -28,6 +28,7 @@ App commands run in `app/` (Flutter 3.50 stable, Dart 3.14). Server: `cd server;
 - The roadmap's "Product rules" are fixed by the product owner. Technical choices can change if
   those rules still hold; record every change in the roadmap's decisions log with the date.
 - Don't add anything the roadmap lists under "Never in scope".
+- Sync and accounts are optional: never make a feature depend on a server or prompt people to sign up.
 - One branch per change. Run the tests that cover what you touched.
 - Test data and examples use made-up names: alice, bob, `example.com`, `192.0.2.1`.
   Never real usernames, hosts, IP addresses or local paths.

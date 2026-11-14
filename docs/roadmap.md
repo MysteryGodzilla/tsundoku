@@ -89,6 +89,10 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   expire with the backup retention, and the app says so plainly.
 - Messages only when they matter: security alerts and persistent sync problems, shown inside the
   app (and by email only on servers that have mail set up). No reminders, nudges, challenges or promotions.
+- **Sync is optional and for people who choose it.** The phone app on its own, with its automatic
+  backups and export, is the whole product for most people. Accounts and the sync server are a more
+  advanced extra for anyone who wants several devices or a self-hosted or cloud copy. Nothing asks,
+  nudges or requires anyone to sign up; the app never depends on a server.
 - Open source. Anyone can download, run and modify it: offline only on their own device, synced
   through their own server (for a family, or one person hosting friends), or (later) a public
   hosted service. Each user on a server has their own private library.
@@ -406,3 +410,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Encryption: Bitwarden model (Argon2id master key; login key to the server; unlock key wraps a random library key; AES-256-GCM) | Mystery |
 | 2026-11-14 | Server admin is a command-line tool (no admin web page) | Mystery |
 | 2026-11-14 | Phase 3 in three steps: 3a accounts and app lock, 3b sync, 3c recovery, admin and backups | Mystery |
+| 2026-11-14 | Sync is optional, an advanced extra: the phone app with backups is complete without it; nothing pushes anyone to sign up | Mystery |

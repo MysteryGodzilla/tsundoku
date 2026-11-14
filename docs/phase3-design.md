@@ -5,6 +5,9 @@ Built and tested on one computer first (simulated devices); where the server run
 decided later.
 
 ## Goals (from the product rules)
+- **Optional.** Everything here is for people who choose to sync. The app works completely
+  without an account or server, never asks anyone to sign up, and the app lock applies only to
+  signed-in phones.
 - Her library works fully offline; sync is optional and catches up when online.
 - **Nobody but her can read her library, including whoever runs the server.** Enforced by
   encryption on the device, not by hiding things in admin screens, and tested.

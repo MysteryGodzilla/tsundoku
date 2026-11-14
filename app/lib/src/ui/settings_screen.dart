@@ -216,8 +216,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (s == null) {
       return Card(
         child: ListTile(
-          title: const Text('Set up sync'),
-          subtitle: const Text('Keep your library on more than one device. Optional: Tsundoku works fully without it.'),
+          title: const Text('Use a sync server'),
+          subtitle: const Text('Only if you want your library on more than one device and have a Tsundoku server, '
+              'your own or one you trust. Everything else works without it.'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
         ),
@@ -391,10 +392,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ]),
             ),
-            heading('Sync'),
-            _syncCard(context, services.account),
             heading('Backups'),
             _backupsCard(context, services.backups),
+            // Sync is optional and for people who choose it (a product rule): last, never pushed.
+            heading('Sync between devices (optional)'),
+            _syncCard(context, services.account),
             heading('About'),
             Card(
               child: Column(children: [
