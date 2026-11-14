@@ -125,8 +125,10 @@ If the server can't read a library, it can't rescue one either, so recovery is s
   domain. Decided 2026-11-14: `mysterygodzilla.github.io` (GitHub Pages, repo
   MysteryGodzilla/MysteryGodzilla.github.io), free. Its `assetlinks.json` lists the spike's debug key
   for now; the real app's release key is added when it exists.
-- **Fallback:** if the Phase 0 test shows passkeys with PRF don't work on her phone, the app shows a
-  one-time recovery code at sign-up instead (her original Q2 answer). The local backups and
+- **Proven on her phone 2026-11-14:** a passkey saved in her Google account (unlocked with her
+  fingerprint) gave the same PRF secret before and after uninstalling and reinstalling the app.
+- **Fallback, for other people's phones:** if a phone or password manager doesn't return a PRF
+  secret, the app shows a one-time recovery code at sign-up instead (her original Q2 answer). The local backups and
   spreadsheet export stay as further safety nets.
 
 ### 3.2 App platform
@@ -141,8 +143,8 @@ a web build (or a Windows app) for desktop. Why Flutter over Expo:
 - Look: Material 3 themed from one soft accent colour, light and dark.
 - App lock: `local_auth` (fingerprint, face or phone PIN).
 - To prove in the Phase 0 spike: scanning on a real Android phone and a laptop webcam, offline
-  search on both, and passkey PRF on her phone. If Flutter's passkey PRF fails there, Expo is the
-  fallback (decided before any real code).
+  search on both, and passkey PRF on her phone. All proven on her phone 2026-11-14 (the `passkeys`
+  package worked), so the Expo fallback isn't needed.
 
 ### 3.3 Sync
 - Every change is recorded on the device as a small event (field X of book Y set to Z, at time T,
@@ -220,8 +222,8 @@ until she's happy with the current one.
   Library lookups); the Android APK and web builds work; in a desktop browser the database opens in
   persistent OPFS storage. **Still to try:** scanning on her real phone and a laptop webcam.
 - Passkey test on her phone (domain ready 2026-11-14): create a passkey in her Google account from the Flutter app, read its PRF
-  secret, and get the same secret back after reinstalling the app. If this fails, try the Expo
-  fallback before settling for the recovery code.
+  secret, and get the same secret back after reinstalling the app. **Passed 2026-11-14**: same code
+  with her fingerprint, before and after a reinstall, no errors.
 - ~~Check Open Library's limits, terms and Kindle coverage~~ Done 2026-11-14:
   [open-library.md](open-library.md). Kindle editions are rarely listed, so Kindle books are added by
   title/author search and matched by work.
@@ -239,6 +241,7 @@ until she's happy with the current one.
 
   Neutrals: light `#F7F6F3` background, `#1C1C1A` text; dark `#141414` background, `#EDEDEA` text.
 - **Done when:** the stack is in the decisions log, and the spike worked on her phone.
+- **Phase 0 done 2026-11-14.** Not tried: scanning with a laptop webcam (it belongs to Phase 4).
 
 ### Phase 1: the owned check, on her phone (offline only)
 The core job, with no accounts and no server.
@@ -328,3 +331,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Q6: first launch uses Sage, light or dark following the phone, until changed in Settings | Mystery |
 | 2026-11-14 | Passkey project domain: mysterygodzilla.github.io (GitHub Pages), hosting only `assetlinks.json` | Mystery |
 | 2026-11-14 | Q7: Open Library only for now. Lookups built behind a `BookSource` interface with per-book identifiers, so more sources can be added later. Trove likely next (key applied for); Inventaire a possible open backup; Google Books and ISBNdb (paid) not used | Mystery |
+| 2026-11-14 | Phase 0 done: scanning, Open Library lookup, offline search and passkey PRF recovery all worked on her phone. Passkey recovery confirmed; the recovery code stays only as a fallback for phones without PRF | Mystery (tested) |
