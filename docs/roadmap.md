@@ -313,6 +313,14 @@ The core job, with no accounts and no server.
   password reset, change email, server backups, command-line admin, install guide. Built and
   tested on one computer with simulated devices; where the server runs for real waits for the
   network review.
+- **Step 3a built 2026-11-14 (app 0.3.0, server 0.1.0):** the shared protocol package (Argon2id,
+  HKDF, AES-256-GCM, authenticator codes, checked against the RFC test vectors); the server
+  (accounts, authenticator, sessions that end after 30 unused days, rate-limited sign-in, a privacy
+  check of its database file); in the app, Settings › Sync to create an account or sign in, the
+  authenticator setup (an "Add to authenticator app" link and the key to type), sign out, delete
+  account, and the app lock (fingerprint, face or PIN after a day unused, when signed in). The app's
+  tests run against the real server code in memory, with two simulated phones. Not on a phone yet:
+  there's no server it can reach until the network review. Next: step 3b, sync.
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.

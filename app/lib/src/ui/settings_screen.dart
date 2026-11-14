@@ -9,11 +9,13 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../app_info.dart';
 import '../app_scope.dart';
+import '../account/account_service.dart';
 import '../backup/backup_service.dart';
 import '../backup/backup_store.dart';
 import '../export/library_export.dart';
 import '../settings/appearance.dart';
 import '../theme/palette.dart';
+import 'account_screen.dart';
 import 'restore_screen.dart';
 import 'widgets.dart';
 
@@ -162,6 +164,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _signOut(AccountService a) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text('Your books stay on this phone. Sign in again to sync.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Sign out')),
+        ],
+      ),
+    );
+    if (ok == true) await a.signOut();
+  }
+
+  Future<void> _deleteAccount(AccountService a) async {
+    final pw = TextEditingController();
+    final messenger = ScaffoldMessenger.of(context);
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Delete your account?'),
+        content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('This deletes your account and everything synced to the server, for good. Your books stay on this phone. '
+              'Copies in the server\'s backups can\'t be opened once the account is gone.'),
+          const SizedBox(height: 16),
+          TextField(controller: pw, obscureText: true, autofocus: true, decoration: const InputDecoration(labelText: 'Your password')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(c).colorScheme.error, foregroundColor: Theme.of(c).colorScheme.onError),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Delete account'),
+          ),
+        ],
+      ),
+    );
+    if (go != true) return;
+    try {
+      await a.deleteAccount(pw.text);
+      messenger.showSnackBar(const SnackBar(content: Text('Account deleted. Your books are still here.')));
+    } on AccountProblem catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+    }
+  }
+
+  Widget _syncCard(BuildContext context, AccountService a) {
+    final s = a.state;
+    if (s == null) {
+      return Card(
+        child: ListTile(
+          title: const Text('Set up sync'),
+          subtitle: const Text('Keep your library on more than one device. Optional: Tsundoku works fully without it.'),
+          trailing: const Icon(Icons.chevron_right),
+          onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+        ),
+      );
+    }
+    final cs = Theme.of(context).colorScheme;
+    return Card(
+      child: Column(children: [
+        ListTile(title: Text(s.email), subtitle: Text(s.serverUrl.replaceFirst(RegExp(r'^https?://'), ''))),
+        const Divider(indent: 16, endIndent: 16),
+        ListTile(
+          title: const Text('Authenticator app'),
+          subtitle: Text(s.totpConfirmed ? 'Set up' : 'Not set up yet. Needed to reset a forgotten password.'),
+          trailing: s.totpConfirmed
+              ? Icon(Icons.check_circle_outline, color: cs.tertiary)
+              : Text('Set up', style: TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)),
+          onTap: s.totpConfirmed ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TotpSetupScreen())),
+        ),
+        const Divider(indent: 16, endIndent: 16),
+        ListTile(title: const Text('Sign out'), trailing: const Icon(Icons.logout), onTap: () => _signOut(a)),
+        const Divider(indent: 16, endIndent: 16),
+        ListTile(title: Text('Delete account', style: TextStyle(color: cs.error)), onTap: () => _deleteAccount(a)),
+      ]),
+    );
+  }
+
   Widget _backupsCard(BuildContext context, BackupService b) {
     final cs = Theme.of(context).colorScheme;
     final last = b.lastBackupAt;
@@ -246,7 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListenableBuilder(
-        listenable: Listenable.merge([appearance, services.backups]),
+        listenable: Listenable.merge([appearance, services.backups, services.account]),
         builder: (context, _) {
           final brightness = Theme.of(context).brightness;
           final effectiveDark = appearance.mode == AppearanceMode.dark ||
@@ -309,6 +391,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ]),
             ),
+            heading('Sync'),
+            _syncCard(context, services.account),
             heading('Backups'),
             _backupsCard(context, services.backups),
             heading('About'),

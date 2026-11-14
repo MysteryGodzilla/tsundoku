@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'src/account/account_service.dart';
+import 'src/account/app_lock.dart';
 import 'src/app_info.dart';
 import 'src/app_scope.dart';
 import 'src/backup/backup_service.dart';
@@ -22,6 +24,8 @@ Future<void> main() async {
   final lookup = BookLookup([OpenLibrarySource(appVersion: appVersion)]);
   final library = LibraryRepository(AppDatabase());
   final covers = CoverStore(lookup);
+  final account = AccountService();
+  await account.load();
   final services = AppServices(
     library: library,
     lookup: lookup,
@@ -29,6 +33,7 @@ Future<void> main() async {
     appearance: await AppearanceSettings.load(),
     view: await ViewSettings.load(),
     backups: BackupService(library: library, covers: covers, prefs: await SharedPreferences.getInstance()),
+    account: account,
   );
   runApp(TsundokuApp(services: services));
 }
@@ -54,7 +59,10 @@ class TsundokuApp extends StatelessWidget {
                 AppearanceMode.light => ThemeMode.light,
                 AppearanceMode.dark => ThemeMode.dark,
               },
-              builder: (context, child) => _BackupHook(services: services, child: KeyboardInsetsGuard(child: child!)),
+              builder: (context, child) => _BackupHook(
+                services: services,
+                child: AppLockGate(account: services.account, child: KeyboardInsetsGuard(child: child!)),
+              ),
               home: const LibraryScreen(),
             );
           },

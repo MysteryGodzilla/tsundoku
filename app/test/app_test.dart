@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tsundoku/main.dart';
+import 'package:tsundoku/src/account/account_service.dart';
 import 'package:tsundoku/src/app_scope.dart';
 import 'package:tsundoku/src/backup/backup_service.dart';
 import 'package:tsundoku/src/books/library_repository.dart';
@@ -55,6 +56,7 @@ Future<AppServices> _services(AppDatabase db, BookLookup lookup, Directory tmp) 
       prefs: await SharedPreferences.getInstance(),
       localDir: () async => Directory('${tmp.path}/backups'),
     ),
+    account: AccountService(secrets: MemorySecretStore()),
   );
 }
 

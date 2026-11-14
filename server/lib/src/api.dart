@@ -60,6 +60,7 @@ class TsundokuApi {
     ..get('/v1/health', (Request r) => _json(200, {'ok': true, 'version': serverVersion}))
     ..post('/v1/prelogin', _prelogin)
     ..post('/v1/accounts', _signUp)
+    ..get('/v1/totp/setup', _totpSetup)
     ..post('/v1/totp/confirm', _confirmTotp)
     ..post('/v1/sessions', _signIn)
     ..delete('/v1/sessions/current', _signOut)
@@ -169,6 +170,13 @@ class TsundokuApi {
     return _json(201, {'token': _newSession(id), 'accountId': id, 'totpSecret': base32Encode(totpSecret)});
   }
 
+  /// The authenticator key again, so setup can be finished later. Only while it's unconfirmed.
+  Future<Response> _totpSetup(Request r) async {
+    final a = _auth(r);
+    if (a.totpConfirmed) throw ApiError(409, 'The authenticator app is already set up.');
+    return _json(200, {'totpSecret': base32Encode(a.totpSecret)});
+  }
+
   Future<Response> _confirmTotp(Request r) async {
     final a = _auth(r);
     final code = _str(await _body(r), 'code', max: 12);
@@ -215,7 +223,8 @@ class TsundokuApi {
     final a = _auth(r);
     final loginKey = _b64(await _body(r), 'loginKey', exact: 32);
     if (!constantTimeEquals(utf8.encode(loginKeyHash(loginKey)), utf8.encode(a.loginHash))) {
-      throw ApiError(401, 'That password isn\'t right.');
+      // 403, not 401: a mistyped password mustn't look like an ended session.
+      throw ApiError(403, 'That password isn\'t right.');
     }
     store.deleteAccount(a.id);
     return _json(200, {'deleted': true});

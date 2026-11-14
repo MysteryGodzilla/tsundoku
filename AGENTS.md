@@ -4,7 +4,8 @@ Tsundoku: a private, offline-first catalogue of the books you own, built so you 
 The plan is in [docs/roadmap.md](docs/roadmap.md); the app is in `app/` (Flutter).
 
 ## Build and test
-All commands run in `app/` (Flutter 3.50 stable, Dart 3.14).
+App commands run in `app/` (Flutter 3.50 stable, Dart 3.14). Server: `cd server; dart test`, run with
+`dart run bin/tsundoku_server.dart serve`. Shared package: `cd packages/tsundoku_protocol; dart test`.
 - Test: `flutter test` (core logic with an in-memory database and fake HTTP; a widget smoke test).
 - Analyse: `flutter analyze` (must be clean).
 - Regenerate the database code after changing tables: `dart run build_runner build`.
@@ -19,7 +20,9 @@ All commands run in `app/` (Flutter 3.50 stable, Dart 3.14).
 - `app/lib/src/covers/`: covers saved on the device (own photos are never cleared).
 - `app/lib/src/theme/`, `settings/`: the four accents, light/dark, the appearance setting.
 - `app/lib/src/ui/`: screens.
-- `docs/`: the roadmap, decisions log and design notes.
+- `server/`: the sync server (Dart, shelf, SQLite). It must never be able to read a library.
+- `packages/tsundoku_protocol/`: keys, sealing and authenticator codes shared by app and server.
+- `docs/`: the roadmap, decisions log and design notes (`phase3-design.md` for accounts and sync).
 
 ## Conventions
 - The roadmap's "Product rules" are fixed by the product owner. Technical choices can change if

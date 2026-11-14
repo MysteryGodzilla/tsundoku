@@ -130,12 +130,14 @@ void main() {
   test('authenticator: a wrong code fails, the right one confirms, and a code works only once', () async {
     final (d, _, secret) = await signUp(email, password);
     expect((await d.call('GET', '/v1/account')).$2['totpConfirmed'], false);
+    expect((await d.call('GET', '/v1/totp/setup')).$2['totpSecret'], secret, reason: 'setup can be finished later');
     expect((await d.call('POST', '/v1/totp/confirm', {'code': '000000'})).$1, anyOf(400, 200));
     final code = totpAt(base32Decode(secret), totpStep(now));
     final (s, _) = await d.call('POST', '/v1/totp/confirm', {'code': code});
     if (s != 200) fail('the right code was refused');
     expect((await d.call('GET', '/v1/account')).$2['totpConfirmed'], true);
     expect((await d.call('POST', '/v1/totp/confirm', {'code': code})).$1, 400, reason: 'no reuse');
+    expect((await d.call('GET', '/v1/totp/setup')).$1, 409, reason: 'the key is not handed out once confirmed');
   });
 
   test('sessions: sign out ends one; 30 idle days end one; a suspended account is refused', () async {
@@ -160,7 +162,7 @@ void main() {
 
   test('deleting the account needs the password and removes everything', () async {
     final (d, _, _) = await signUp(email, password);
-    expect((await d.call('DELETE', '/v1/account', {'loginKey': base64Encode(randomBytes(32))})).$1, 401);
+    expect((await d.call('DELETE', '/v1/account', {'loginKey': base64Encode(randomBytes(32))})).$1, 403);
     final keys = await d.keysFor(email, password);
     expect((await d.call('DELETE', '/v1/account', {'loginKey': base64Encode(keys.loginKey)})).$1, 200);
     expect(store.accountByEmail(email), isNull);
