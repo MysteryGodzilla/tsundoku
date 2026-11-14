@@ -12,7 +12,7 @@ import 'package:tsundoku_protocol/tsundoku_protocol.dart';
 
 import 'store.dart';
 
-const serverVersion = '0.1.0';
+const serverVersion = '0.2.0';
 
 class ApiError implements Exception {
   ApiError(this.status, this.message);
@@ -54,6 +54,9 @@ class TsundokuApi {
 
   static const maxBody = 1024 * 1024;
 
+  /// Pushes of events and photo attachments may be bigger.
+  static const maxSyncBody = 12 * 1024 * 1024;
+
   Handler get handler => const Pipeline().addMiddleware(_errors).addHandler(_router.call);
 
   late final Router _router = Router(notFoundHandler: (_) => _json(404, {'error': 'Not found'}))
@@ -65,7 +68,11 @@ class TsundokuApi {
     ..post('/v1/sessions', _signIn)
     ..delete('/v1/sessions/current', _signOut)
     ..get('/v1/account', _getAccount)
-    ..delete('/v1/account', _deleteAccount);
+    ..delete('/v1/account', _deleteAccount)
+    ..post('/v1/events', _pushEvents)
+    ..get('/v1/events', _pullEvents)
+    ..put('/v1/blobs/<id>', _putBlob)
+    ..get('/v1/blobs/<id>', _getBlob);
 
   Middleware get _errors => (inner) => (request) async {
         try {
@@ -80,13 +87,13 @@ class TsundokuApi {
   static Response _json(int status, Object body) =>
       Response(status, body: jsonEncode(body), headers: {'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store'});
 
-  static Future<Map<String, Object?>> _body(Request r) async {
+  static Future<Map<String, Object?>> _body(Request r, {int max = maxBody}) async {
     final len = r.contentLength;
-    if (len != null && len > maxBody) throw ApiError(413, 'Too big.');
+    if (len != null && len > max) throw ApiError(413, 'Too big.');
     final bytes = <int>[];
     await for (final chunk in r.read()) {
       bytes.addAll(chunk);
-      if (bytes.length > maxBody) throw ApiError(413, 'Too big.');
+      if (bytes.length > max) throw ApiError(413, 'Too big.');
     }
     final j = jsonDecode(utf8.decode(bytes));
     if (j is! Map<String, Object?>) throw const FormatException();
@@ -217,6 +224,59 @@ class TsundokuApi {
   Future<Response> _getAccount(Request r) async {
     final a = _auth(r);
     return _json(200, {'accountId': a.id, 'email': a.email, 'totpConfirmed': a.totpConfirmed, 'createdAt': a.createdAt.toUtc().toIso8601String()});
+  }
+
+  /// Sync needs the authenticator set up, so a forgotten password can be reset (design, 3b).
+  Account _syncer(Request r) {
+    final a = _auth(r);
+    if (!a.totpConfirmed) throw ApiError(403, 'Finish setting up the authenticator app first.');
+    return a;
+  }
+
+  static final _id = RegExp(r'^[A-Za-z0-9_-]{1,80}$');
+
+  Future<Response> _pushEvents(Request r) async {
+    final a = _syncer(r);
+    final j = await _body(r, max: maxSyncBody);
+    final device = _str(j, 'device', max: 80);
+    if (!_id.hasMatch(device)) throw const FormatException();
+    final raw = j['events'];
+    if (raw is! List || raw.length > 1000) throw const FormatException();
+    final events = [
+      for (final e in raw)
+        if (e is String) base64Decode(e) else throw const FormatException(),
+    ];
+    if (events.any((e) => e.isEmpty || e.length > 256 * 1024)) throw ApiError(413, 'Too big.');
+    return _json(200, {'lastSeq': store.addEvents(a.id, device, events, _clock())});
+  }
+
+  Future<Response> _pullEvents(Request r) async {
+    final a = _syncer(r);
+    final after = int.tryParse(r.url.queryParameters['after'] ?? '0') ?? 0;
+    final limit = (int.tryParse(r.url.queryParameters['limit'] ?? '500') ?? 500).clamp(1, 1000);
+    final rows = store.eventsAfter(a.id, after, limit + 1);
+    final page = rows.take(limit).toList();
+    return _json(200, {
+      'events': [for (final e in page) {'seq': e.seq, 'device': e.device, 'data': base64Encode(e.data)}],
+      'more': rows.length > limit,
+      'lastSeq': store.lastSeq(a.id),
+    });
+  }
+
+  Future<Response> _putBlob(Request r, String id) async {
+    final a = _syncer(r);
+    if (!_id.hasMatch(id)) throw const FormatException();
+    final data = _b64(await _body(r, max: maxSyncBody), 'data', max: 8 * 1024 * 1024);
+    store.putBlob(a.id, id, data, _clock());
+    return _json(200, {'ok': true});
+  }
+
+  Future<Response> _getBlob(Request r, String id) async {
+    final a = _syncer(r);
+    if (!_id.hasMatch(id)) throw const FormatException();
+    final data = store.getBlob(a.id, id);
+    if (data == null) throw ApiError(404, 'Not found');
+    return _json(200, {'data': base64Encode(data)});
   }
 
   Future<Response> _deleteAccount(Request r) async {

@@ -197,4 +197,58 @@ void main() {
     expect(contains(libraryKey), isFalse);
     expect(contains(utf8.encode(email)), isTrue, reason: 'the email is the login name');
   });
+
+  group('sync storage (3b)', () {
+    Future<FakeDevice> syncer(String email) async {
+      final (d, _, secret) = await signUp(email, password);
+      final (s, _) = await d.call('POST', '/v1/totp/confirm', {'code': totpAt(base32Decode(secret), totpStep(now))});
+      expect(s, 200);
+      return d;
+    }
+
+    test('needs the authenticator set up first', () async {
+      final (d, _, _) = await signUp(email, password);
+      final (s, b) = await d.call('POST', '/v1/events', {'device': 'phone1', 'events': [base64Encode([1, 2, 3])]});
+      expect(s, 403);
+      expect(b['error'], contains('authenticator'));
+      expect((await d.call('GET', '/v1/events?after=0')).$1, 403);
+    });
+
+    test('events come back in order, in pages, and only to their own account', () async {
+      final alice = await syncer(email);
+      final bob = await syncer('bob@example.com');
+      final batch = [for (var i = 0; i < 7; i++) base64Encode([i, i, i])];
+      final (s, b) = await alice.call('POST', '/v1/events', {'device': 'phone1', 'events': batch});
+      expect(s, 200);
+      expect(b['lastSeq'], greaterThan(0));
+      await bob.call('POST', '/v1/events', {'device': 'tablet', 'events': [base64Encode([9])]});
+
+      final (_, p1) = await alice.call('GET', '/v1/events?after=0&limit=5');
+      final page1 = (p1['events']! as List).cast<Map>();
+      expect(page1.length, 5);
+      expect(p1['more'], isTrue);
+      final (_, p2) = await alice.call('GET', '/v1/events?after=${page1.last['seq']}&limit=5');
+      final page2 = (p2['events']! as List).cast<Map>();
+      expect(page2.length, 2);
+      expect(p2['more'], isFalse);
+      expect([...page1, ...page2].map((e) => base64Decode(e['data'] as String).first), [0, 1, 2, 3, 4, 5, 6]);
+      expect(page1.first['device'], 'phone1');
+
+      final (_, bobs) = await bob.call('GET', '/v1/events?after=0');
+      expect((bobs['events']! as List).length, 1, reason: 'never another account\'s events');
+    });
+
+    test('attachments round-trip; deleting the account removes events and attachments', () async {
+      final alice = await syncer(email);
+      expect((await alice.call('PUT', '/v1/blobs/photo-1', {'data': base64Encode([5, 6, 7])})).$1, 200);
+      expect(base64Decode((await alice.call('GET', '/v1/blobs/photo-1')).$2['data']! as String), [5, 6, 7]);
+      expect((await alice.call('GET', '/v1/blobs/missing')).$1, 404);
+      expect((await alice.call('PUT', '/v1/blobs/bad id!', {'data': base64Encode([1])})).$1, anyOf(400, 404));
+      await alice.call('POST', '/v1/events', {'device': 'phone1', 'events': [base64Encode([1])]});
+      final keys = await alice.keysFor(email, password);
+      expect((await alice.call('DELETE', '/v1/account', {'loginKey': base64Encode(keys.loginKey)})).$1, 200);
+      expect(store.db.select('SELECT COUNT(*) AS n FROM events').first['n'], 0);
+      expect(store.db.select('SELECT COUNT(*) AS n FROM blobs').first['n'], 0);
+    });
+  });
 }

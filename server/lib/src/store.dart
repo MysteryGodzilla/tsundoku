@@ -57,6 +57,21 @@ class Store {
         last_seen_at INTEGER NOT NULL,
         suspended INTEGER NOT NULL DEFAULT 0
       );
+      CREATE TABLE IF NOT EXISTS events (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+        device TEXT NOT NULL,
+        data BLOB NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS events_by_account ON events (account_id, seq);
+      CREATE TABLE IF NOT EXISTS blobs (
+        account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+        id TEXT NOT NULL,
+        data BLOB NOT NULL,
+        updated_at INTEGER NOT NULL,
+        PRIMARY KEY (account_id, id)
+      );
       CREATE TABLE IF NOT EXISTS sessions (
         token_hash TEXT PRIMARY KEY,
         account_id TEXT NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
@@ -147,6 +162,43 @@ class Store {
     final id = row['account_id'] as String;
     touchAccount(id, now);
     return accountById(id);
+  }
+
+  /// Appends locked change events; returns the last sequence number.
+  int addEvents(String accountId, String device, List<Uint8List> events, DateTime now) {
+    final stmt = db.prepare('INSERT INTO events (account_id, device, data, created_at) VALUES (?, ?, ?, ?)');
+    db.execute('BEGIN');
+    try {
+      for (final e in events) {
+        stmt.execute([accountId, device, e, now.millisecondsSinceEpoch]);
+      }
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    } finally {
+      stmt.close();
+    }
+    return lastSeq(accountId);
+  }
+
+  int lastSeq(String accountId) =>
+      (db.select('SELECT MAX(seq) AS s FROM events WHERE account_id = ?', [accountId]).first['s'] as int?) ?? 0;
+
+  List<({int seq, String device, Uint8List data})> eventsAfter(String accountId, int after, int limit) => [
+        for (final r in db.select('SELECT seq, device, data FROM events WHERE account_id = ? AND seq > ? ORDER BY seq LIMIT ?', [accountId, after, limit]))
+          (seq: r['seq'] as int, device: r['device'] as String, data: Uint8List.fromList(r['data'] as List<int>)),
+      ];
+
+  void putBlob(String accountId, String id, Uint8List data, DateTime now) => db.execute(
+        'INSERT INTO blobs (account_id, id, data, updated_at) VALUES (?, ?, ?, ?) '
+        'ON CONFLICT (account_id, id) DO UPDATE SET data = excluded.data, updated_at = excluded.updated_at',
+        [accountId, id, data, now.millisecondsSinceEpoch],
+      );
+
+  Uint8List? getBlob(String accountId, String id) {
+    final r = db.select('SELECT data FROM blobs WHERE account_id = ? AND id = ?', [accountId, id]).firstOrNull;
+    return r == null ? null : Uint8List.fromList(r['data'] as List<int>);
   }
 
   void deleteSession(String tokenHash) => db.execute('DELETE FROM sessions WHERE token_hash = ?', [tokenHash]);
