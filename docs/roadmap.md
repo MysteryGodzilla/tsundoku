@@ -24,7 +24,9 @@ These are settled. A technical choice that breaks one of them is the wrong choic
 - Android phone first. An iPhone version may come later but isn't a priority. Desktop use
   (including a webcam for scanning) is wanted where possible.
 - A native-feeling app on the phone; a web app (PWA) only if native isn't workable.
-- Calm and minimal: clean layouts, a neutral palette with one soft accent colour, light and dark modes. Book covers are the
+- Calm and minimal: clean layouts, a neutral palette with one soft accent colour, light and dark modes.
+- Settings has a simple appearance picker: one of **four accent colours** (Sage, Dusty blue, Blush,
+  Heather) and **Light or Dark**. Nothing more (no custom colours, fonts or themes). Book covers are the
   star, in a grid. No bookshelf graphics, no heavy animation, nothing that looks like social media.
 - Search is prominent and easy to reach, and results update as you type.
 - An owned book shows a clear **ALREADY OWNED** label in the results, with its cover and details.
@@ -196,14 +198,16 @@ until she's happy with the current one.
   fallback before settling for the recovery code.
 - Check Open Library's limits, terms and Kindle coverage; write the findings in `docs/`.
 - Mock-ups of the library grid and search in two or three soft accent colours, light and dark, for
-  the product owner to pick from. Made 2026-11-14 in three accents (sage, dusty blue, blush), each
-  with light and dark; waiting for her pick. Palette candidates (every text pairing at least 4.5:1):
+  the product owner to pick from. Made 2026-11-14 in three accents, then a fourth (Heather) and a
+  Settings screen with the picker were added the same day. All four ship; she chooses in Settings.
+  The palette (every text pairing at least 4.5:1):
 
   | Accent | Light mode accent / tint | Dark mode accent / tint |
   |---|---|---|
   | Sage | `#4F6F58` / `#E3ECE5` | `#9DBFA5` / `#22302A` |
   | Dusty blue | `#4E6A85` / `#E2E9F0` | `#9DB5CC` / `#1F2A35` |
   | Blush | `#9A5B66` / `#F4E4E6` | `#E0AEB6` / `#3A262A` |
+  | Heather | `#6E5A86` / `#EAE4F0` | `#B9A7D0` / `#2C2536` |
 
   Neutrals: light `#F7F6F3` background, `#1C1C1A` text; dark `#141414` background, `#EDEDEA` text.
 - **Done when:** the stack is in the decisions log, and the spike worked on her phone.
@@ -260,8 +264,10 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 - ~~**Q4. Desktop first or later.**~~ Answered 2026-11-14: phone first. The computer version comes
   in Phase 4, after sync works.
 - ~~**Q5. Look and feel.**~~ Answered 2026-11-14: a neutral background with **one soft accent colour**
-  for buttons and the ALREADY OWNED label. Which colour (sage, dusty blue, blush or another) is still
-  open: show her mock-ups to choose from in Phase 0.
+  for buttons and the ALREADY OWNED label. After the mock-ups: four accents (Sage, Dusty blue, Blush,
+  Heather) to pick from in Settings, plus Light or Dark.
+- **Q6. Starting look** (proposed defaults, to confirm): the app opens in Sage, and in light or dark to
+  match the phone's own setting, until she picks in Settings.
 
 ## 6. Open (deferred in the brief)
 - Hosting provider and costs for a public service; email provider (only the hosted service needs one).
@@ -285,3 +291,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Recovery: authenticator app (TOTP) for password resets; a passkey saved in her Google account unlocks the library on a new phone; a written recovery code only if passkeys fail the Phase 0 test. Replaces Q2's recovery code | Mystery |
 | 2026-11-14 | Email optional: the email address is the login name; servers work without mail; alerts in the app; verification emails only when mail is set up. Replaces the brief's required email verification and reset emails | Mystery |
 | 2026-11-14 | Stack: Flutter (Dart) app, `drift` SQLite, `mobile_scanner`; Dart (`shelf`) server. Expo is the fallback if passkey PRF fails in Phase 0 | Mystery |
+| 2026-11-14 | Settings: pick one of four accents (Sage, Dusty blue, Blush, Heather) and Light or Dark; nothing more complicated. The fourth accent is named Heather so it doesn't sound like Dusty blue | Mystery |
