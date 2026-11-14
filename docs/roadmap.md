@@ -118,6 +118,11 @@ If the server can't read a library, it can't rescue one either, so recovery is s
   account. The passkey's PRF extension gives the app a secret that only her fingerprint can
   release, which unwraps the library key. Google syncs the passkey end-to-end encrypted, so it
   arrives on a new phone by itself.
+- **One project domain for every user.** The server never checks the passkey; the app only uses
+  its PRF secret on the device. So the passkey belongs to one fixed project domain that hosts
+  nothing but `/.well-known/assetlinks.json` (Android's proof that the domain trusts the app's
+  signing key), whichever sync server a person uses. A fork signed with its own key needs its own
+  domain.
 - **Fallback:** if the Phase 0 test shows passkeys with PRF don't work on her phone, the app shows a
   one-time recovery code at sign-up instead (her original Q2 answer). The local backups and
   spreadsheet export stay as further safety nets.
@@ -191,12 +196,17 @@ until she's happy with the current one.
 ### Phase 0: decide and prove (before any real code)
 - Approve the technical choices in section 3 (Mystery; done: MIT licence, Flutter + Dart) and answer the questions in section 5 (the
   product owner).
-- Spike, thrown away afterwards: a Flutter app on her Android phone that scans a barcode, looks it up
+- Spike, thrown away afterwards (built 2026-11-14, kept outside the repo): a Flutter app on her Android phone that scans a barcode, looks it up
   on Open Library, saves it to SQLite and finds it offline. The same on a laptop webcam.
-- Passkey test on her phone: create a passkey in her Google account from the Flutter app, read its PRF
+  Status 2026-11-14: automated tests pass (owned check across editions, local search, live Open
+  Library lookups); the Android APK and web builds work; in a desktop browser the database opens in
+  persistent OPFS storage. **Still to try:** scanning on her real phone and a laptop webcam.
+- Passkey test on her phone (needs the project domain above first): create a passkey in her Google account from the Flutter app, read its PRF
   secret, and get the same secret back after reinstalling the app. If this fails, try the Expo
   fallback before settling for the recovery code.
-- Check Open Library's limits, terms and Kindle coverage; write the findings in `docs/`.
+- ~~Check Open Library's limits, terms and Kindle coverage~~ Done 2026-11-14:
+  [open-library.md](open-library.md). Kindle editions are rarely listed, so Kindle books are added by
+  title/author search and matched by work.
 - Mock-ups of the library grid and search in two or three soft accent colours, light and dark, for
   the product owner to pick from. Made 2026-11-14 in three accents, then a fourth (Heather) and a
   Settings screen with the picker were added the same day. All four ship; she chooses in Settings.
