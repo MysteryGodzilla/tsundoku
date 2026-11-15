@@ -379,7 +379,7 @@ The core job, with no accounts and no server.
     real phones still waits for a reachable server.
   - **0.5.1** (from that test): the server address is remembered after signing out (for signing in
     and for a forgotten password), and a password reset goes back to Settings instead of an empty
-    sign-in form.
+    sign-in form. With its tests: 92 automated tests (app 57).
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.
