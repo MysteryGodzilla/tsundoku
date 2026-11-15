@@ -28,9 +28,10 @@ These are settled. A technical choice that breaks one of them is the wrong choic
 - Books she is **Reading** are pinned to the top in the default order (Recently added) and in search
   results, most recently touched first. In the other sorts (Title, Author, Rating) Reading is the
   tie-breaker: sorting by author, her Reading Stephen King comes first among the Stephen Kings.
-- Filters: quick chips under the search bar (All, Physical, Kindle, TBR, Reading, Read, DNF), a sort
-  menu, and a Filters button for author, genre and rating. Searching always covers the whole library,
-  whatever the filters, so the owned check never misses a book.
+- Filters: a sort menu and a Filters button holding, in this order, format (Physical, Kindle),
+  reading status (TBR, Reading, Read, DNF), then author, genre and rating. No chips under the search
+  bar (her choice, 2026-11-15; to be built at the end of Phase 3, until then the chips stay).
+  Searching always covers the whole library, whatever the filters, so the owned check never misses a book.
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon.
 - Settings has a simple appearance picker: one of **five accent colours** (Sage, Dusty blue, Blush,
@@ -303,7 +304,9 @@ The core job, with no accounts and no server.
   phone), and **Save to…** for the spreadsheet beside Share. Automatic copies off the phone come with
   Phase 3's sync. 0.2.2: on her phone Android's save dialog doesn't offer Drive or OneDrive either, so
   "Save a copy" offers **Share…** too ("Save to Drive", "Upload to OneDrive"); spreadsheet Save and
-  Share both work. Waiting for her sign-off on filters and sorting.
+  Share both work. **2026-11-15: she likes the sorting and the filtering**; the chips under the
+  search bar move into the Filters menu (format first, then status, then the rest), to be built at
+  the end of Phase 3.
 
 ### Phase 3: accounts and sync (self-hosted server)
 - The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
@@ -365,8 +368,18 @@ The core job, with no accounts and no server.
   - Tested: 90 automated tests (protocol 11, server 24, app 55), including a new phone getting the
     library back with a recovery code or passkey, starting again, other devices re-syncing
     afterwards, a home server out of reach for a week, and the plain-http warning. The server
-    program was built and its commands tried on Windows, and cross-compiled for Linux. Not tried on
-    a phone yet, and the Docker image hasn't been built (no Docker on this computer).
+    program was built and its commands tried on Windows, and cross-compiled for Linux. The Docker
+    image hasn't been built (no Docker on this computer).
+  - **Tried on her phone 2026-11-15** against a server on this computer, over the USB cable only
+    (`adb reverse`), with her real library: the plain-http warning (cancel, then agree), the
+    authenticator (the link opened Microsoft Authenticator), a passkey (one fingerprint), a recovery
+    code, the first upload (the server's file held nothing readable), change password, change email,
+    sign out, both forgotten-password routes (passkey, recovery code), "can't be reached" straight
+    away with the cable out, and deleting the account (the server was left empty). Two-device sync on
+    real phones still waits for a reachable server.
+  - **0.5.1** (from that test): the server address is remembered after signing out (for signing in
+    and for a forgotten password), and a password reset goes back to Settings instead of an empty
+    sign-in form.
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.
@@ -460,3 +473,6 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-15 | A home-network server waits a week before the "sync hasn't worked" notice (an internet server: a day) | recommendation, to confirm |
 | 2026-11-15 | Email sending stays out for now (no feature needs it; changing email takes an authenticator code) | recommendation, to confirm |
 | 2026-11-15 | Correction: deleting an account can't reach into the server's older backups; they keep a locked copy until they age out | correction |
+| 2026-11-15 | Phase 2 sorting and filtering approved. The chips under the search bar go into the Filters menu: format (Physical, Kindle) first, status second, then author, genre and rating as now. Built at the end of Phase 3 | product owner |
+| 2026-11-15 | The last server address is remembered after signing out; a password reset returns to Settings | Mystery (tested) |
+| 2026-11-15 | Step 3c works on her phone (single device, server over USB): recovery, reset, change password and email, delete | Mystery (tested) |
