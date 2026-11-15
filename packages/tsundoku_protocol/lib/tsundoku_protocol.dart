@@ -3,5 +3,6 @@
 library;
 
 export 'src/keys.dart';
+export 'src/recovery.dart';
 export 'src/seal.dart';
 export 'src/totp.dart';

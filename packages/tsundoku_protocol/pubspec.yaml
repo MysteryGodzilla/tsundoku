@@ -1,7 +1,7 @@
 name: tsundoku_protocol
 description: "Shared by the Tsundoku app and server: keys, sealing, authenticator codes."
 publish_to: none
-version: 0.1.0
+version: 0.2.0
 # repository: https://github.com/my_org/my_repo
 
 environment:

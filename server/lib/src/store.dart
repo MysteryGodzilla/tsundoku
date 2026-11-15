@@ -1,5 +1,6 @@
-/// The server's database (SQLite). It holds accounts, sessions and, from step 3b, locked boxes.
-/// It never holds a password, a key that can open a library, or any book data in readable form.
+/// The server's database (SQLite). It holds accounts, sessions and locked boxes (change events,
+/// photos and the wrapped copies of each library key). It never holds a password, a key that can
+/// open a library, or any book data in readable form.
 library;
 
 import 'dart:convert';
@@ -79,6 +80,9 @@ class Store {
         last_used_at INTEGER NOT NULL
       );
     ''');
+    // 0.3.0: the library key wrapped by a passkey and/or a recovery code (JSON, locked boxes only).
+    final columns = db.select('PRAGMA table_info(accounts)').map((r) => r['name'] as String).toSet();
+    if (!columns.contains('recovery')) db.execute('ALTER TABLE accounts ADD COLUMN recovery TEXT');
   }
 
   factory Store.open(String path) => Store._(sqlite3.open(path));
@@ -89,6 +93,11 @@ class Store {
   void close() => db.close();
 
   /// A random secret made on first run; it makes fake salts for unknown emails stable.
+  String? getMeta(String key) => db.select('SELECT value FROM meta WHERE key = ?', [key]).firstOrNull?['value']?.toString();
+
+  void setMeta(String key, String value) =>
+      db.execute('INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', [key, value]);
+
   Uint8List get serverSecret {
     final row = db.select("SELECT value FROM meta WHERE key = 'server_secret'").firstOrNull;
     if (row != null) return Uint8List.fromList(row['value'] as List<int>);
@@ -202,4 +211,54 @@ class Store {
   }
 
   void deleteSession(String tokenHash) => db.execute('DELETE FROM sessions WHERE token_hash = ?', [tokenHash]);
+
+  /// Ends every session for the account, except [keep] (the one making the change).
+  void endSessions(String accountId, {String? keep}) =>
+      db.execute('DELETE FROM sessions WHERE account_id = ? AND token_hash IS NOT ?', [accountId, keep]);
+
+  // ---------- Recovery, password and email (step 3c) ----------
+
+  /// The wrapped copies of the library key: `{passkey: {credentialId, prfSalt, wrapped}, code: {wrapped}}`.
+  Map<String, Object?> recovery(String accountId) {
+    final v = db.select('SELECT recovery FROM accounts WHERE id = ?', [accountId]).firstOrNull?['recovery'] as String?;
+    return v == null ? {} : (jsonDecode(v) as Map).cast<String, Object?>();
+  }
+
+  void setRecovery(String accountId, Map<String, Object?> r) =>
+      db.execute('UPDATE accounts SET recovery = ? WHERE id = ?', [r.isEmpty ? null : jsonEncode(r), accountId]);
+
+  void setPassword(String accountId, {required Uint8List salt, required KdfParams kdf, required String loginHash, required Uint8List wrappedLibraryKey}) =>
+      db.execute(
+        'UPDATE accounts SET salt = ?, kdf = ?, login_hash = ?, wrapped_library_key = ? WHERE id = ?',
+        [salt, jsonEncode(kdf.toJson()), loginHash, wrappedLibraryKey, accountId],
+      );
+
+  void setEmail(String accountId, String email) => db.execute('UPDATE accounts SET email = ? WHERE id = ?', [normaliseEmail(email), accountId]);
+
+  /// Starting the library again (a reset with no way to unlock the old one): its locked changes,
+  /// photos and recovery copies can never be opened, so they go.
+  void wipeLibrary(String accountId) {
+    db.execute('DELETE FROM events WHERE account_id = ?', [accountId]);
+    db.execute('DELETE FROM blobs WHERE account_id = ?', [accountId]);
+    setRecovery(accountId, {});
+  }
+
+  // ---------- Admin and backups ----------
+
+  /// Storage per account: how many locked changes and photos, and their size. No library data.
+  ({int events, int eventBytes, int photos, int photoBytes}) usage(String accountId) {
+    final e = db.select('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(data)), 0) AS b FROM events WHERE account_id = ?', [accountId]).first;
+    final p = db.select('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(data)), 0) AS b FROM blobs WHERE account_id = ?', [accountId]).first;
+    return (events: e['n'] as int, eventBytes: e['b'] as int, photos: p['n'] as int, photoBytes: p['b'] as int);
+  }
+
+  /// The database's size on disk, in bytes.
+  int get sizeBytes {
+    final pages = db.select('PRAGMA page_count').first.values.first as int;
+    final size = db.select('PRAGMA page_size').first.values.first as int;
+    return pages * size;
+  }
+
+  /// A consistent copy of the whole database, made while the server keeps running.
+  void backupTo(String path) => db.execute('VACUUM INTO ?', [path]);
 }

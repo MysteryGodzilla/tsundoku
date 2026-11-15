@@ -1,4 +1,4 @@
-/// The account API (docs/phase3-design.md, step 3a). JSON in and out; binary values are base64.
+/// The sync server's API (docs/phase3-design.md). JSON in and out; binary values are base64.
 library;
 
 import 'dart:convert';
@@ -12,7 +12,7 @@ import 'package:tsundoku_protocol/tsundoku_protocol.dart';
 
 import 'store.dart';
 
-const serverVersion = '0.2.0';
+const serverVersion = '0.3.0';
 
 class ApiError implements Exception {
   ApiError(this.status, this.message);
@@ -52,6 +52,10 @@ class TsundokuApi {
   /// A session not used for this long ends (the 30-day full sign-out rule).
   final Duration sessionMaxIdle;
 
+  /// Password resets in progress: a short-lived token, given once the authenticator code is right.
+  final _resets = <String, ({String accountId, DateTime expires})>{};
+  static const resetTime = Duration(minutes: 15);
+
   static const maxBody = 1024 * 1024;
 
   /// Pushes of events and photo attachments may be bigger.
@@ -72,7 +76,13 @@ class TsundokuApi {
     ..post('/v1/events', _pushEvents)
     ..get('/v1/events', _pullEvents)
     ..put('/v1/blobs/<id>', _putBlob)
-    ..get('/v1/blobs/<id>', _getBlob);
+    ..get('/v1/blobs/<id>', _getBlob)
+    ..get('/v1/recovery', _getRecovery)
+    ..put('/v1/recovery', _putRecovery)
+    ..post('/v1/reset/start', _resetStart)
+    ..post('/v1/reset/finish', _resetFinish)
+    ..post('/v1/account/password', _changePassword)
+    ..post('/v1/account/email', _changeEmail);
 
   Middleware get _errors => (inner) => (request) async {
         try {
@@ -288,5 +298,133 @@ class TsundokuApi {
     }
     store.deleteAccount(a.id);
     return _json(200, {'deleted': true});
+  }
+
+  // ---------- Recovery, password reset, change password and email (step 3c) ----------
+
+  /// An authenticator code, checked like a password: rate-limited, and never accepted twice.
+  void _checkTotp(Account a, String code, Request r) {
+    final now = _clock();
+    final address = _address(r);
+    if (_limiter.blocked(a.email, address, now)) throw ApiError(429, 'Too many tries. Wait a few minutes and try again.');
+    final step = totpMatch(a.totpSecret, code, now);
+    if (step == null || step <= a.totpLastStep) {
+      _limiter.fail(a.email, address, now);
+      throw ApiError(400, 'That code didn\'t work. Try the newest one.');
+    }
+    store.setTotpLastStep(a.id, step);
+  }
+
+  /// The new password's settings and keys, as the app sends them.
+  ({Uint8List salt, KdfParams kdf, String loginHash, Uint8List wrapped}) _newPassword(Map<String, Object?> j) => (
+        salt: _b64(j, 'salt', exact: 16),
+        kdf: KdfParams.fromJson((j['kdf']! as Map).cast<String, Object?>()),
+        loginHash: loginKeyHash(_b64(j, 'loginKey', exact: 32)),
+        wrapped: _b64(j, 'wrappedLibraryKey', max: 1024),
+      );
+
+  Future<Response> _getRecovery(Request r) async {
+    final a = _syncer(r);
+    final rec = store.recovery(a.id);
+    return _json(200, {'passkey': rec['passkey'] != null, 'code': rec['code'] != null});
+  }
+
+  /// Sets (or, with null, removes) the passkey and recovery-code copies of the library key. They're
+  /// locked: only the passkey's secret or the code itself opens them, and the server has neither.
+  Future<Response> _putRecovery(Request r) async {
+    final a = _syncer(r);
+    final j = await _body(r);
+    final rec = store.recovery(a.id);
+    if (j.containsKey('passkey')) {
+      final p = j['passkey'];
+      if (p == null) {
+        rec.remove('passkey');
+      } else if (p is Map<String, Object?>) {
+        rec['passkey'] = {
+          'credentialId': _str(p, 'credentialId', max: 1024),
+          'prfSalt': base64Encode(_b64(p, 'prfSalt', exact: 32)),
+          'wrapped': base64Encode(_b64(p, 'wrapped', max: 256)),
+        };
+      } else {
+        throw const FormatException();
+      }
+    }
+    if (j.containsKey('code')) {
+      final c = j['code'];
+      if (c == null) {
+        rec.remove('code');
+      } else if (c is Map<String, Object?>) {
+        rec['code'] = {'wrapped': base64Encode(_b64(c, 'wrapped', max: 256))};
+      } else {
+        throw const FormatException();
+      }
+    }
+    store.setRecovery(a.id, rec);
+    return _json(200, {'passkey': rec['passkey'] != null, 'code': rec['code'] != null});
+  }
+
+  /// Forgotten password, step 1: email and authenticator code. Answers the same way whether or not
+  /// the email has an account. Returns the locked recovery copies, so the app can unlock the library.
+  Future<Response> _resetStart(Request r) async {
+    final j = await _body(r);
+    final email = normaliseEmail(_str(j, 'email'));
+    final code = _str(j, 'code', max: 12);
+    final now = _clock();
+    final address = _address(r);
+    if (_limiter.blocked(email, address, now)) throw ApiError(429, 'Too many tries. Wait a few minutes and try again.');
+    final a = store.accountByEmail(email);
+    final step = a == null || !a.totpConfirmed ? null : totpMatch(a.totpSecret, code, now);
+    if (a == null || step == null || step <= a.totpLastStep) {
+      _limiter.fail(email, address, now);
+      throw ApiError(400, 'That email or code isn\'t right. Use the newest code from your authenticator app.');
+    }
+    if (a.suspended) throw ApiError(403, 'This account is suspended.');
+    store.setTotpLastStep(a.id, step);
+    _resets.removeWhere((_, v) => now.isAfter(v.expires));
+    final token = base64Url.encode(randomBytes(32));
+    _resets[token] = (accountId: a.id, expires: now.add(resetTime));
+    return _json(200, {'resetToken': token, 'accountId': a.id, 'recovery': store.recovery(a.id)});
+  }
+
+  /// Forgotten password, step 2: the new password, wrapping the library key the app unlocked (or a
+  /// new one, with `fresh`, when there was no way to unlock it). Signs out every other device.
+  Future<Response> _resetFinish(Request r) async {
+    final j = await _body(r);
+    final token = _str(j, 'resetToken', max: 100);
+    final pw = _newPassword(j);
+    final fresh = j['fresh'] == true;
+    final reset = _resets.remove(token);
+    if (reset == null || _clock().isAfter(reset.expires)) throw ApiError(400, 'That took too long. Please start again.');
+    final a = store.accountById(reset.accountId);
+    if (a == null) throw ApiError(400, 'That took too long. Please start again.');
+    if (fresh) store.wipeLibrary(a.id);
+    store.setPassword(a.id, salt: pw.salt, kdf: pw.kdf, loginHash: pw.loginHash, wrappedLibraryKey: pw.wrapped);
+    store.endSessions(a.id);
+    store.touchAccount(a.id, _clock());
+    return _json(200, {'token': _newSession(a.id), 'accountId': a.id, 'email': a.email, 'totpConfirmed': true});
+  }
+
+  /// Signed in: a new password, with the authenticator code (so it also works when the old one is
+  /// forgotten). Other devices are signed out and sign in with the new password.
+  Future<Response> _changePassword(Request r) async {
+    final a = _syncer(r);
+    final j = await _body(r);
+    final pw = _newPassword(j);
+    _checkTotp(a, _str(j, 'code', max: 12), r);
+    store.setPassword(a.id, salt: pw.salt, kdf: pw.kdf, loginHash: pw.loginHash, wrappedLibraryKey: pw.wrapped);
+    store.endSessions(a.id, keep: _tokenHash(r.headers['authorization']!.substring(7)));
+    return _json(200, {'ok': true});
+  }
+
+  Future<Response> _changeEmail(Request r) async {
+    final a = _syncer(r);
+    final j = await _body(r);
+    final email = normaliseEmail(_str(j, 'email'));
+    if (!_validEmail(email)) throw ApiError(400, 'That email address doesn\'t look right.');
+    final other = store.accountByEmail(email);
+    if (other != null && other.id != a.id) throw ApiError(409, 'There\'s already an account with that email.');
+    _checkTotp(a, _str(j, 'code', max: 12), r);
+    store.setEmail(a.id, email);
+    return _json(200, {'email': email});
   }
 }

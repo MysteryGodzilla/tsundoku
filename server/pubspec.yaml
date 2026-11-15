@@ -1,7 +1,7 @@
 name: tsundoku_server
 description: "The Tsundoku sync server. It stores accounts and locked boxes; it can never read a library."
 publish_to: none
-version: 0.2.0
+version: 0.3.0
 # repository: https://github.com/my_org/my_repo
 
 environment:

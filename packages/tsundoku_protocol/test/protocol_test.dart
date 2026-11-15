@@ -82,4 +82,35 @@ void main() {
       expect(again, isNot(sealed), reason: 'a fresh nonce every time');
     });
   });
+  group('recovery', () {
+    test('a code is 24 letters in six groups, and reads back forgivingly', () {
+      final code = newRecoveryCode();
+      expect(code, matches(RegExp(r'^[A-Z2-7]{4}(-[A-Z2-7]{4}){5}$')));
+      final bytes = parseRecoveryCode(code)!;
+      expect(bytes.length, recoveryCodeBytes);
+      expect(formatRecoveryCode(bytes), code);
+      expect(parseRecoveryCode(' ${code.toLowerCase().replaceAll('-', ' ')} '), bytes);
+      expect(parseRecoveryCode(code.replaceAll('O', '0').replaceAll('I', '1').replaceAll('B', '8')), bytes);
+      expect(parseRecoveryCode(code.substring(0, 20)), isNull);
+      expect(parseRecoveryCode('${code}A'), isNull);
+    });
+
+    test('code and passkey wraps open the library key only with the right secret', () async {
+      final libraryKey = randomBytes(32);
+      final code = parseRecoveryCode(newRecoveryCode())!;
+      final byCode = await seal(recoveryWrapKey(code), libraryKey);
+      expect(await open(recoveryWrapKey(code), byCode), libraryKey);
+      expect(() => open(recoveryWrapKey(parseRecoveryCode(newRecoveryCode())!), byCode), throwsA(isA<SealException>()));
+      final prf = randomBytes(32);
+      final byPasskey = await seal(passkeyWrapKey(prf), libraryKey);
+      expect(await open(passkeyWrapKey(prf), byPasskey), libraryKey);
+      expect(recoveryWrapKey(prf), isNot(passkeyWrapKey(prf)), reason: 'different purposes, different keys');
+    });
+
+    test('a library id is stable and differs between keys', () {
+      final k = randomBytes(32);
+      expect(libraryKeyId(k), libraryKeyId(List.of(k)));
+      expect(libraryKeyId(k), isNot(libraryKeyId(randomBytes(32))));
+    });
+  });
 }
