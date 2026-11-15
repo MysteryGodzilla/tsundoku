@@ -1,0 +1,9 @@
+# Only the server and the shared package go into the Docker build.
+.git
+app/
+docs/
+**/.dart_tool/
+**/build/
+**/*.db
+**/*.db-*
+**/backups/

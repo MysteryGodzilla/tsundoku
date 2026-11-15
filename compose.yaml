@@ -1,0 +1,20 @@
+# The Tsundoku sync server, for Docker. See docs/sync-server.md.
+#   Start (or update after a git pull):  docker compose up -d --build
+#   Admin commands:                      docker compose exec tsundoku tsundoku_server stats
+services:
+  tsundoku:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+    image: tsundoku-server:local
+    restart: unless-stopped
+    ports:
+      # Phones on your home network connect to this computer's address on port 8797.
+      # Behind an https proxy on this same computer, use "127.0.0.1:8797:8797" instead.
+      - "8797:8797"
+    volumes:
+      # The database and its daily backups (kept 14 days).
+      - tsundoku-data:/data
+
+volumes:
+  tsundoku-data:

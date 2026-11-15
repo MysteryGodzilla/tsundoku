@@ -118,8 +118,10 @@ at once:
   boxes it can't open. Admin privacy then isn't a permission setting that could be got around; the
   server simply has nothing readable. It's also easy to test: dump the server's database and check
   that no title, author or note appears in it.
-- **Deleting an account destroys its key**, so even copies still sitting in backups become
-  unreadable straight away, ahead of the retention window.
+- **Deleting an account** removes it and everything it synced at once. The server's own backups
+  keep its locked copy until they age out (14 days by default); like everything on the server,
+  nobody can open it without her password, passkey or recovery code. (Corrected 2026-11-15: a
+  backup holds the same locked key as the live server, so deleting can't reach into old backups.)
 
 If the server can't read a library, it can't rescue one either, so recovery is split in two
 (decided 2026-11-14):
@@ -337,6 +339,34 @@ The core job, with no accounts and no server.
   through the real server code, including a check that the server's database file holds no titles,
   authors, notes or genres. Schema 3 (sync tables) upgrades in place. Not on a phone yet (no
   reachable server). Next: step 3c.
+- **Step 3c built 2026-11-15 (app 0.5.0, server 0.3.0):**
+  - **Recovery:** after the authenticator setup the app offers a passkey saved in her Google
+    account (her fingerprint opens the library on a new phone) or a recovery code (24 letters and
+    numbers, shown once). Each locks a copy of the library key that the server keeps but can't
+    open. Settings › Sync shows which is set up.
+  - **Forgotten password** (Sign in › Forgot password?): email and an authenticator code, then the
+    passkey or recovery code opens the library, then a new password. Other devices are signed out
+    and sign in with the new one. With neither, she can start the synced copy again from the
+    phone's books (the old locked copy is deleted, since nothing can open it).
+  - **Change password** (an authenticator code instead of the old password, so it also works when
+    the old one is forgotten) and **change email**, in Settings › Sync.
+  - **Home servers:** an address typed without `http://` or `https://` tries https, then plain
+    http. Plain http shows a warning (what's at risk, https recommended) that she must agree to. A
+    server on a home-network address (like `10.0.0.20:8797` or `nas.local`) gives up quickly when
+    it's out of reach, and the "sync hasn't worked" notice waits a week instead of a day. "Sync
+    now" says so when it fails.
+  - **Server:** daily backups kept 14 days and a `restore` command; admin commands (`stats`,
+    `list`, `suspend`, `unsuspend`, `delete`, `backup`, `health`); on start-up it says who can
+    connect and which addresses to type. A `Dockerfile` and `compose.yaml`, and the install guide,
+    [sync-server.md](sync-server.md) (Docker or the program alone; home network with
+    `--host 0.0.0.0`, Tailscale, or https with Caddy). Email sending isn't built: nothing needs it.
+  - The project domain's `assetlinks.json` now lists the app itself (signed with the same debug
+    key as the spike), so its passkeys can work.
+  - Tested: 90 automated tests (protocol 11, server 24, app 55), including a new phone getting the
+    library back with a recovery code or passkey, starting again, other devices re-syncing
+    afterwards, a home server out of reach for a week, and the plain-http warning. The server
+    program was built and its commands tried on Windows, and cross-compiled for Linux. Not tried on
+    a phone yet, and the Docker image hasn't been built (no Docker on this computer).
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.
@@ -423,3 +453,10 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-14 | Server admin is a command-line tool (no admin web page) | Mystery |
 | 2026-11-14 | Phase 3 in three steps: 3a accounts and app lock, 3b sync, 3c recovery, admin and backups | Mystery |
 | 2026-11-14 | Sync is optional, an advanced extra: the phone app with backups is complete without it; nothing pushes anyone to sign up | Mystery |
+| 2026-11-15 | No background sync: it syncs only while the app is open (on opening, after a change, every few minutes). The library is too small to need it | Mystery |
+| 2026-11-15 | Home-network servers (a local address like 10.0.0.20:8797) are supported; the guide says to run the server with `--host 0.0.0.0` for them | Mystery |
+| 2026-11-15 | Plain http is allowed but not recommended: the app explains the risk, recommends https and needs her agreement first; the guide says the same | Mystery |
+| 2026-11-15 | Docker: a Dockerfile and compose.yaml for the server, with Docker instructions in the guide | Mystery |
+| 2026-11-15 | A home-network server waits a week before the "sync hasn't worked" notice (an internet server: a day) | recommendation, to confirm |
+| 2026-11-15 | Email sending stays out for now (no feature needs it; changing email takes an authenticator code) | recommendation, to confirm |
+| 2026-11-15 | Correction: deleting an account can't reach into the server's older backups; they keep a locked copy until they age out | correction |

@@ -5,7 +5,9 @@ The plan is in [docs/roadmap.md](docs/roadmap.md); the app is in `app/` (Flutter
 
 ## Build and test
 App commands run in `app/` (Flutter 3.50 stable, Dart 3.14). Server: `cd server; dart test`, run with
-`dart run bin/tsundoku_server.dart serve`. Shared package: `cd packages/tsundoku_protocol; dart test`.
+`dart run bin/tsundoku_server.dart serve` (no arguments for the admin commands), build the program
+with `dart build cli`. Docker: `server/Dockerfile` and `compose.yaml` at the root (build context is
+the root, because the server uses `packages/`). Shared package: `cd packages/tsundoku_protocol; dart test`.
 - Test: `flutter test` (core logic with an in-memory database and fake HTTP; a widget smoke test).
 - Analyse: `flutter analyze` (must be clean).
 - Regenerate the database code after changing tables: `dart run build_runner build`.
@@ -20,7 +22,8 @@ App commands run in `app/` (Flutter 3.50 stable, Dart 3.14). Server: `cd server;
 - `app/lib/src/covers/`: covers saved on the device (own photos are never cleared).
 - `app/lib/src/theme/`, `settings/`: the four accents, light/dark, the appearance setting.
 - `app/lib/src/ui/`: screens.
-- `server/`: the sync server (Dart, shelf, SQLite). It must never be able to read a library.
+- `server/`: the sync server (Dart, shelf, SQLite), its admin commands and daily backups. It must
+  never be able to read a library. How people install it: `docs/sync-server.md`.
 - `packages/tsundoku_protocol/`: keys, sealing and authenticator codes shared by app and server.
 - `docs/`: the roadmap, decisions log and design notes (`phase3-design.md` for accounts and sync).
 
@@ -30,8 +33,8 @@ App commands run in `app/` (Flutter 3.50 stable, Dart 3.14). Server: `cd server;
 - Don't add anything the roadmap lists under "Never in scope".
 - Sync and accounts are optional: never make a feature depend on a server or prompt people to sign up.
 - One branch per change. Run the tests that cover what you touched.
-- Test data and examples use made-up names: alice, bob, `example.com`, `192.0.2.1`.
-  Never real usernames, hosts, IP addresses or local paths.
+- Test data and examples use made-up names: alice, bob, `example.com`, `192.0.2.1`, and
+  `10.0.0.20:8797` for a home server. Never real usernames, hosts, IP addresses or local paths.
 - Never commit secrets, `.env` or local config; `.gitignore` lists what stays out.
 - Every write to the library goes through `LibraryRepository`, so the change log stays complete for sync.
 - Gotchas: `kotlin.incremental=false` in `android/gradle.properties` (Kotlin's cache breaks across

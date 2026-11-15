@@ -71,17 +71,39 @@ the device that syncs second sees a conflict, and asks once.
 - Her own cover photos sync as encrypted attachments.
 
 ## Recovery, admin, backups (step 3c)
+Built 2026-11-15 as described, with these details settled.
 - **New phone, password known:** sign in, the wrapped library key comes down, unlock.
-- **Password forgotten:** email + authenticator code → set a new password. The library key comes
-  from a signed-in device, or from her passkey (fingerprint), or the recovery code; it's re-wrapped
-  under the new password. Without any of those the synced library can't be opened (by design).
-- **Change email:** signed in, with the authenticator code; verification email only if the server
-  has mail set up.
-- **Admin (command line on the server):** `stats` (account count, storage, health), `list`
-  (emails, created, last seen: no library data), `suspend`, `delete`. There is no admin web page.
-- **Server backups:** nightly copy of the database (only locked boxes), kept by the retention
-  setting. Deleting an account removes its key material, so its data in older backups can't be read.
-- **Install guide:** one Dart executable plus a config file; Docker optional.
+- **Recovery copies of the library key**, set up after the authenticator (Settings › Sync, "If you
+  forget your password"):
+  - **Passkey:** saved in her Google account for the project domain, with a random 32-byte PRF salt
+    and her account id as the user handle (saving again replaces it). Wrap key = HKDF(PRF secret,
+    "tsundoku passkey v1"). The server keeps `{credentialId, prfSalt, wrapped}`.
+  - **Recovery code:** 15 random bytes (120 bits) shown once as 24 base32 characters in six groups.
+    That's far beyond guessing, so no Argon2 is needed: wrap key = HKDF(code, "tsundoku recovery
+    code v1"). Reading it back forgives case, spaces, dashes and 0/O, 1/I, 8/B.
+- **Password forgotten:** `POST /v1/reset/start {email, code}` (rate-limited like sign-in, the same
+  answer for unknown emails, codes never accepted twice) → a reset token for 15 minutes and the
+  recovery copies. The app opens the library key with the passkey or code, then
+  `POST /v1/reset/finish {resetToken, salt, kdf, loginKey, wrappedLibraryKey}` sets the new password
+  and ends every session. With neither, `fresh: true` starts again with a new library key and the
+  server deletes the old events, photos and recovery copies, which nothing could open. Sync
+  progress is kept per library key (a short hash of it), so every device then syncs from the start.
+- **Signed-in device, password forgotten or not:** `POST /v1/account/password` with an
+  authenticator code and the new password's keys (same library key); other sessions end.
+- **Change email:** `POST /v1/account/email {email, code}`. No email is sent (none is set up).
+- **Home servers:** with no scheme the app tries https, then plain http; plain http needs her
+  agreement after a warning. Each sync starts with a 10-second `/v1/health` check, so an
+  unreachable server fails fast; for home-network addresses the notice waits 7 days, not 1.
+  Events that can't be opened with the library key are skipped (and counted) so one bad event
+  can't stop sync.
+- **Admin (command line on the server):** `stats`, `list` (emails, created, last seen, storage:
+  no library data), `suspend`, `unsuspend`, `delete`, `backup`, `restore`, `health`. There is no
+  admin web page.
+- **Server backups:** daily `VACUUM INTO` copies (only locked boxes) in `backups/` beside the
+  database, kept 14 days (`--keep-days`), the newest always kept. Deleting an account removes it at
+  once; older backups keep its locked copy until they age out, and nothing on the server can open it.
+- **Install guide:** [sync-server.md](sync-server.md): Docker (`compose.yaml`) or the program
+  built with `dart build cli` (it carries its own SQLite).
 
 ## Layout
 - `server/`: the Dart server (`shelf`, `sqlite3`), its tests and admin commands.
