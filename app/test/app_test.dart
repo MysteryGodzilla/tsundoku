@@ -80,12 +80,13 @@ void main() {
     expect(find.text('1 book'), findsOneWidget);
     expect(find.text('The Salt Orchard'), findsWidgets);
     expect(find.byIcon(Icons.menu_book_outlined), findsOneWidget, reason: 'Physical bubble on the cover');
-    expect(find.text('Read'), findsOneWidget, reason: 'only the Read filter chip: no status bubble until a status is set');
+    expect(find.text('Read'), findsNothing, reason: 'no status bubble until a status is set, and no filter chips');
+    expect(find.byType(FilterChip), findsNothing, reason: 'every filter is in the Filters sheet (her choice)');
 
     final id = (await tester.runAsync(() => services.library.watchAll().first))!.single.id;
     await tester.runAsync(() => services.library.update(id, const BookChanges(status: ReadingStatus.read)));
     await _settle(tester);
-    expect(find.text('Read'), findsNWidgets(2), reason: 'the filter chip and the status bubble on the cover');
+    expect(find.text('Read'), findsOneWidget, reason: 'the status bubble on the cover');
 
     await tester.enterText(find.byType(TextField).first, 'orchard');
     await _settle(tester);
@@ -100,6 +101,58 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Heather'));
     await _settle(tester);
     expect(services.appearance.accent, Accent.heather);
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(db.close);
+    tmp.deleteSync(recursive: true);
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  testWidgets('every filter is in the Filters sheet: format, then status, then rating, genre and author', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+    final tmp = Directory.systemTemp.createTempSync('filters_test');
+    final services = await _services(db, BookLookup([_NoSource()]), tmp);
+    final repo = services.library;
+    await tester.runAsync(() async {
+      final a = await repo.addManual(title: 'Carrie', authors: ['Stephen King'], format: OwnershipFormat.kindle);
+      await repo.update(a, const BookChanges(status: ReadingStatus.read));
+      await repo.setGenres(a, ['Horror']);
+      await repo.addManual(title: 'Misery', authors: ['Stephen King'], format: OwnershipFormat.physical);
+      final c = await repo.addManual(title: 'The Salt Orchard', authors: ['Mira Hale'], format: OwnershipFormat.kindle);
+      await repo.update(c, const BookChanges(status: ReadingStatus.tbr));
+    });
+    await tester.pumpWidget(TsundokuApp(services: services));
+    await _settle(tester);
+    expect(find.text('3 books'), findsOneWidget);
+    expect(find.byType(FilterChip), findsNothing, reason: 'no chips under the search bar');
+
+    await tester.tap(find.text('Filters'));
+    await _settle(tester);
+    final headings = ['FORMAT', 'READING STATUS', 'RATING', 'GENRE', 'AUTHOR'];
+    final ys = [for (final h in headings) tester.getTopLeft(find.text(h)).dy];
+    expect(ys, [...ys]..sort(), reason: 'in the order she chose: $headings');
+
+    await tester.tap(find.widgetWithText(FilterChip, 'Kindle'));
+    await tester.pump();
+    expect(find.text('Show 2 books'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilterChip, 'TBR'));
+    await tester.pump();
+    await tester.tap(find.text('Show 1 book'));
+    await _settle(tester);
+    expect(find.text('The Salt Orchard'), findsWidgets);
+    expect(find.text('Carrie'), findsNothing);
+    expect(find.text('2'), findsOneWidget, reason: 'the Filters badge counts both choices');
+
+    await tester.tap(find.text('Filters'));
+    await _settle(tester);
+    await tester.tap(find.text('Clear all'));
+    await tester.pump();
+    await tester.tap(find.text('Show 3 books'));
+    await _settle(tester);
+    expect(find.text('Carrie'), findsWidgets);
 
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(db.close);

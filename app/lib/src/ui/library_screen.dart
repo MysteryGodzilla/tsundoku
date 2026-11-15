@@ -4,7 +4,6 @@ import '../app_scope.dart';
 import '../books/isbn.dart';
 import '../books/library_repository.dart';
 import '../books/library_view.dart';
-import '../books/models.dart';
 import 'add_flow.dart';
 import 'filters_sheet.dart';
 import 'book_detail_screen.dart';
@@ -40,15 +39,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   LibraryFilter _filter = LibraryFilter.none;
 
-  /// Quick chips (format and status), the sort menu and the Filters button, as in the mock-up.
+  /// The sort menu and the Filters button. Every filter is in the Filters sheet (her choice,
+  /// 2026-11-15: no chips under the search bar).
   Widget _controls(BuildContext context, List<LibraryBook> books, SortOrder order) {
     final view = AppScope.of(context).view;
     final cs = Theme.of(context).colorScheme;
-    final chipsEmpty = _filter.formats.isEmpty && _filter.statuses.isEmpty;
-    Widget chip(String label, bool selected, VoidCallback onTap) => Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: FilterChip(label: Text(label), selected: selected, showCheckmark: false, onSelected: (_) => onTap()),
-        );
     final sync = AppScope.of(context).sync;
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       // Only for people who sync, and only when something needs her (a product rule: no nagging).
@@ -72,25 +67,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ),
         ),
-      SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Row(children: [
-          chip('All', chipsEmpty, () => setState(() => _filter = _filter.copyWith(formats: {}, statuses: {}))),
-          for (final f in OwnershipFormat.values)
-            chip(f.label, _filter.formats.contains(f), () => setState(() {
-                  final s = {..._filter.formats};
-                  s.contains(f) ? s.remove(f) : s.add(f);
-                  _filter = _filter.copyWith(formats: s);
-                })),
-          for (final st in ReadingStatus.values)
-            chip(st.label, _filter.statuses.contains(st), () => setState(() {
-                  final s = {..._filter.statuses};
-                  s.contains(st) ? s.remove(st) : s.add(st);
-                  _filter = _filter.copyWith(statuses: s);
-                })),
-        ]),
-      ),
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
         child: Row(children: [

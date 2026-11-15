@@ -83,8 +83,8 @@ class LibraryFilter {
 
   bool get isEmpty => formats.isEmpty && statuses.isEmpty && authors.isEmpty && genres.isEmpty && rating is AnyRating;
 
-  /// How many choices live in the Filters sheet (author, genre, rating), for its button's badge.
-  int get sheetCount => authors.length + genres.length + (rating is AnyRating ? 0 : 1);
+  /// How many choices are made in the Filters sheet (every filter lives there), for its button's badge.
+  int get sheetCount => formats.length + statuses.length + authors.length + genres.length + (rating is AnyRating ? 0 : 1);
 
   LibraryFilter copyWith({
     Set<OwnershipFormat>? formats,

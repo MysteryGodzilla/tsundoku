@@ -29,8 +29,8 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   results, most recently touched first. In the other sorts (Title, Author, Rating) Reading is the
   tie-breaker: sorting by author, her Reading Stephen King comes first among the Stephen Kings.
 - Filters: a sort menu and a Filters button holding, in this order, format (Physical, Kindle),
-  reading status (TBR, Reading, Read, DNF), then author, genre and rating. No chips under the search
-  bar (her choice, 2026-11-15; to be built at the end of Phase 3, until then the chips stay).
+  reading status (TBR, Reading, Read, DNF), then rating, genre and author. The button shows how many
+  are chosen. No chips under the search bar (her choice, 2026-11-15; built in 0.5.3).
   Searching always covers the whole library, whatever the filters, so the owned check never misses a book.
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon.
@@ -305,8 +305,8 @@ The core job, with no accounts and no server.
   Phase 3's sync. 0.2.2: on her phone Android's save dialog doesn't offer Drive or OneDrive either, so
   "Save a copy" offers **Share…** too ("Save to Drive", "Upload to OneDrive"); spreadsheet Save and
   Share both work. **2026-11-15: she likes the sorting and the filtering**; the chips under the
-  search bar move into the Filters menu (format first, then status, then the rest), to be built at
-  the end of Phase 3.
+  search bar move into the Filters menu (format first, then status, then the rest): built in
+  **0.5.3** the same day, ahead of the rest of Phase 3, since it's what she sees first.
 
 ### Phase 3: accounts and sync (self-hosted server)
 - The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
@@ -481,3 +481,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-15 | The last server address is remembered after signing out; a password reset returns to Settings | Mystery (tested) |
 | 2026-11-15 | Step 3c works on her phone (single device, server over USB): recovery, reset, change password and email, delete | Mystery (tested) |
 | 2026-11-15 | After a reset that starts the synced library again, go straight to setting up a new passkey or recovery code | Mystery |
+| 2026-11-15 | The filters change goes in now (0.5.3), not at the end of Phase 3: it's what she sees first | Mystery |

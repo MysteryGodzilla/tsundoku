@@ -2,8 +2,10 @@ import 'package:material_ui/material_ui.dart';
 
 import '../books/library_repository.dart';
 import '../books/library_view.dart';
+import '../books/models.dart';
 
-/// Author, genre and rating filters. Returns the new filter, or null if dismissed.
+/// Every filter, in the order she chose (2026-11-15): format, reading status, then rating, genre
+/// and author. Returns the new filter, or null if dismissed.
 Future<LibraryFilter?> showFiltersSheet(BuildContext context, List<LibraryBook> books, LibraryFilter current) =>
     showModalBottomSheet<LibraryFilter>(
       context: context,
@@ -44,7 +46,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
 
   static const _ratings = <RatingFilter>[AnyRating(), AtLeast(5), AtLeast(4), AtLeast(3), AtLeast(2), AtLeast(1), NotRated()];
 
-  Set<String> _toggle(Set<String> s, String v) => s.contains(v) ? ({...s}..remove(v)) : {...s, v};
+  Set<T> _toggle<T>(Set<T> s, T v) => s.contains(v) ? ({...s}..remove(v)) : {...s, v};
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +68,16 @@ class _FiltersSheetState extends State<_FiltersSheet> {
         ),
         Expanded(
           child: ListView(controller: widget.scroll, padding: const EdgeInsets.fromLTRB(24, 0, 24, 16), children: [
+            heading('Format'),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final f in OwnershipFormat.values)
+                FilterChip(label: Text(f.label), selected: _f.formats.contains(f), onSelected: (_) => setState(() => _f = _f.copyWith(formats: _toggle(_f.formats, f)))),
+            ]),
+            heading('Reading status'),
+            Wrap(spacing: 8, runSpacing: 8, children: [
+              for (final st in ReadingStatus.values)
+                FilterChip(label: Text(st.label), selected: _f.statuses.contains(st), onSelected: (_) => setState(() => _f = _f.copyWith(statuses: _toggle(_f.statuses, st)))),
+            ]),
             heading('Rating'),
             Wrap(spacing: 8, runSpacing: 8, children: [
               for (final r in _ratings)

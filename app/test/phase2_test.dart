@@ -72,6 +72,7 @@ void main() {
       expect(titles(const LibraryFilter(rating: AtLeast(3))), ['A']);
       expect(titles(const LibraryFilter(rating: NotRated())), ['B']);
       expect(const LibraryFilter(authors: {'X Y'}, rating: AtLeast(3)).sheetCount, 2);
+      expect(const LibraryFilter(formats: {OwnershipFormat.kindle}, statuses: {ReadingStatus.read, ReadingStatus.dnf}).sheetCount, 3);
     });
   });
 
