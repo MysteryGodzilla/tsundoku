@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:tsundoku_protocol/tsundoku_protocol.dart';
 
 import '../account/account_service.dart';
+import '../account/server_address.dart';
 import '../backup/backup_format.dart';
 import '../books/library_repository.dart';
 import '../books/models.dart';
@@ -79,8 +80,18 @@ class SyncService extends ChangeNotifier {
   /// The last unexpected error, for tests and diagnostics (never shown to her as is).
   String? lastError;
 
-  /// After about a day of failures she's told (a product rule: only if the problem persists).
-  bool get problemPersists => failingSince != null && _now().difference(failingSince!) > const Duration(hours: 24);
+  /// Changes from the server that couldn't be opened with the library key (damaged, or not from
+  /// one of her devices). They're skipped so sync carries on.
+  int skipped = 0;
+
+  /// A server on the home network (like 10.0.0.20:8797): out of reach whenever she's away, which
+  /// is expected, so it waits longer before saying anything.
+  bool get homeServer => account.state != null && isHomeNetworkUrl(account.state!.serverUrl);
+
+  /// How long sync can keep failing before she's told (a product rule: only if the problem persists).
+  Duration get patience => homeServer ? const Duration(days: 7) : const Duration(hours: 24);
+
+  bool get problemPersists => failingSince != null && _now().difference(failingSince!) > patience;
 
   bool get ready => account.signedIn && account.state!.totpConfirmed && account.libraryKey != null;
 
@@ -120,6 +131,10 @@ class SyncService extends ChangeNotifier {
 
   String get _accountId => account.state!.accountId;
   List<int> get _aad => utf8.encode(_accountId);
+
+  /// Sync progress is kept per library key, so a library started again after a reset syncs from
+  /// the beginning on every device.
+  String get _libraryTag => '$_accountId/${libraryKeyId(account.libraryKey!)}';
 
   Future<List<ChangeLogData>> _pendingRows() async {
     final device = (await library.hlc()).device;
@@ -168,6 +183,7 @@ class SyncService extends ChangeNotifier {
     syncing = true;
     notifyListeners();
     try {
+      await account.ping();
       await _firstUpload();
       await _pull();
       await _push();
@@ -176,7 +192,9 @@ class SyncService extends ChangeNotifier {
       failingSince = null;
       return true;
     } on AccountProblem catch (e) {
-      problem = e.message;
+      problem = e.unreachable && homeServer
+          ? 'Your home sync server can\'t be reached. Sync catches up when you\'re home.'
+          : e.message;
       failingSince ??= _now();
       return false;
     } catch (e, st) {
@@ -193,7 +211,7 @@ class SyncService extends ChangeNotifier {
 
   /// The first sync for an account sends the whole library as it is.
   Future<void> _firstUpload() async {
-    final key = 'uploaded:$_accountId';
+    final key = 'uploaded:$_libraryTag';
     if (await library.getMeta(key) != null) return;
     await _db.customStatement('UPDATE change_log SET pushed = 1 WHERE pushed = 0');
     for (final b in await library.allBooks()) {
@@ -206,7 +224,7 @@ class SyncService extends ChangeNotifier {
   // ---------- Pull and merge ----------
 
   Future<void> _pull() async {
-    final cursorKey = 'cursor:$_accountId';
+    final cursorKey = 'cursor:$_libraryTag';
     var after = int.tryParse(await library.getMeta(cursorKey) ?? '') ?? 0;
     final me = (await library.hlc()).device;
     while (true) {
@@ -214,7 +232,16 @@ class SyncService extends ChangeNotifier {
       final events = (j['events'] as List? ?? const []).cast<Map>();
       for (final e in events) {
         if (e['device'] != me) {
-          final plain = await open(account.libraryKey!, base64Decode(e['data'] as String), aad: _aad);
+          final Uint8List plain;
+          try {
+            plain = await open(account.libraryKey!, base64Decode(e['data'] as String), aad: _aad);
+          } on SealException {
+            skipped++;
+            lastError = 'Skipped change ${e['seq']}: it could not be opened with this library key';
+            after = e['seq'] as int;
+            await library.setMeta(cursorKey, '$after');
+            continue;
+          }
           await _merge((jsonDecode(utf8.decode(plain)) as Map).cast<String, Object?>());
         }
         after = e['seq'] as int;

@@ -9,6 +9,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:tsundoku_protocol/tsundoku_protocol.dart';
 
+import 'server_address.dart' as address;
+
 /// Where the session and keys are kept: Android's secure storage on a phone, memory in tests.
 abstract interface class SecretStore {
   Future<String?> read(String key);
@@ -39,11 +41,14 @@ class MemorySecretStore implements SecretStore {
 
 /// A problem to show her, in plain words.
 class AccountProblem implements Exception {
-  AccountProblem(this.message, {this.signedOut = false});
+  AccountProblem(this.message, {this.signedOut = false, this.unreachable = false});
   final String message;
 
   /// The server no longer knows this session (30 days unused, signed out elsewhere, suspended).
   final bool signedOut;
+
+  /// Nothing answered at the address (offline, or away from a home server).
+  final bool unreachable;
   @override
   String toString() => message;
 }
@@ -54,6 +59,32 @@ class AccountState {
   final String email;
   final String accountId;
   final bool totpConfirmed;
+
+  AccountState copyWith({String? email, bool? totpConfirmed}) =>
+      AccountState(serverUrl: serverUrl, email: email ?? this.email, accountId: accountId, totpConfirmed: totpConfirmed ?? this.totpConfirmed);
+}
+
+/// Which ways back into the library are set up (step 3c).
+class RecoveryStatus {
+  const RecoveryStatus({required this.passkey, required this.code});
+  final bool passkey;
+  final bool code;
+  bool get any => passkey || code;
+}
+
+/// A password reset in progress: the authenticator code was right; the library still needs unlocking.
+class PasswordReset {
+  PasswordReset._({required this.serverUrl, required this.email, required this.accountId, required this.token, this.passkeyId, this.passkeySalt, this.passkeyWrapped, this.codeWrapped});
+  final String serverUrl;
+  final String email;
+  final String accountId;
+  final String token;
+  final String? passkeyId;
+  final Uint8List? passkeySalt;
+  final Uint8List? passkeyWrapped;
+  final Uint8List? codeWrapped;
+  bool get hasPasskey => passkeyId != null && passkeySalt != null && passkeyWrapped != null;
+  bool get hasCode => codeWrapped != null;
 }
 
 /// Minimum password length. A long password matters more than odd characters.
@@ -69,7 +100,7 @@ class AccountService extends ChangeNotifier {
   final SecretStore _secrets;
   final http.Client _http;
 
-  /// Argon2id settings for new accounts (tests use cheaper ones).
+  /// Argon2id settings for new accounts and new passwords (tests use cheaper ones).
   final KdfParams kdf;
 
   AccountState? _state;
@@ -79,7 +110,7 @@ class AccountService extends ChangeNotifier {
   AccountState? get state => _state;
   bool get signedIn => _state != null;
 
-  /// The key that encrypts her synced library (step 3b). Only in memory and secure storage.
+  /// The key that encrypts her synced library. Only in memory and secure storage.
   Uint8List? get libraryKey => _libraryKey;
 
   static const _kUrl = 'account.server', _kEmail = 'account.email', _kId = 'account.id';
@@ -114,6 +145,13 @@ class AccountService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _update(AccountState s) async {
+    await _secrets.write(_kEmail, s.email);
+    await _secrets.write(_kTotp, '${s.totpConfirmed}');
+    _state = s;
+    notifyListeners();
+  }
+
   /// Forget the account on this phone. Her library stays.
   Future<void> _forget() async {
     await _secrets.deleteAll();
@@ -123,22 +161,19 @@ class AccountService extends ChangeNotifier {
     notifyListeners();
   }
 
-  static String cleanServerUrl(String url) {
-    var u = url.trim();
-    if (!u.contains('://')) u = 'https://$u';
-    return u.replaceAll(RegExp(r'/+$'), '');
-  }
+  static String cleanServerUrl(String url) => address.cleanServerUrl(url);
 
-  Future<Map<String, Object?>> _call(String method, String serverUrl, String path, {Map<String, Object?>? body, String? token}) async {
+  Future<Map<String, Object?>> _call(String method, String serverUrl, String path,
+      {Map<String, Object?>? body, String? token, Duration timeout = const Duration(seconds: 30)}) async {
     final req = http.Request(method, Uri.parse('$serverUrl$path'))
       ..headers['content-type'] = 'application/json'
       ..headers.addAll({if (token != null) 'authorization': 'Bearer $token'});
     if (body != null) req.body = jsonEncode(body);
     final http.Response res;
     try {
-      res = await http.Response.fromStream(await _http.send(req).timeout(const Duration(seconds: 30)));
+      res = await http.Response.fromStream(await _http.send(req).timeout(timeout));
     } catch (_) {
-      throw AccountProblem('The sync server can\'t be reached. Check the address and that you\'re online.');
+      throw AccountProblem('The sync server can\'t be reached. Check the address and that you\'re online.', unreachable: true);
     }
     Map<String, Object?> j;
     try {
@@ -152,23 +187,56 @@ class AccountService extends ChangeNotifier {
     return j;
   }
 
+  /// Finds the Tsundoku server at the address she typed and returns it in full. With no `http://`
+  /// or `https://`, it tries https first, then plain http (how a home server usually runs). The
+  /// screen warns her before using a plain http address.
+  Future<String> checkServer(String typed) async {
+    final url = address.cleanServerUrl(typed);
+    try {
+      await _health(url);
+      return url;
+    } on AccountProblem catch (e) {
+      if (address.hasScheme(typed) || !e.unreachable) rethrow;
+    }
+    final plain = address.asPlainHttp(url);
+    await _health(plain);
+    return plain;
+  }
+
+  Future<void> _health(String url) async {
+    final j = await _call('GET', url, '/v1/health', timeout: const Duration(seconds: 10));
+    if (j['ok'] != true) throw AccountProblem('That address doesn\'t look like a Tsundoku sync server.');
+  }
+
+  /// A quick check that the server answers, so a sync away from a home server gives up quickly.
+  Future<void> ping() async {
+    final s = _state;
+    if (s == null) throw AccountProblem('Not signed in.');
+    await _health(s.serverUrl);
+  }
+
   Future<AccountKeys> _keys(String password, List<int> salt, KdfParams p) async =>
       AccountKeys.fromMaster(await compute(_derive, (password, Uint8List.fromList(salt), p)));
 
-  /// Creates the account. Returns the authenticator key to add to her authenticator app.
-  Future<String> signUp({required String serverUrl, required String email, required String password}) async {
+  /// A new password's salt, settings, login key and the library key wrapped by it, ready to send.
+  Future<Map<String, Object?>> _passwordBody(String password, Uint8List libraryKey) async {
     if (password.length < minPasswordLength) throw AccountProblem('Use at least $minPasswordLength characters.');
-    final url = cleanServerUrl(serverUrl);
     final salt = randomBytes(16);
     final keys = await _keys(password, salt, kdf);
-    final libraryKey = randomBytes(32);
-    final j = await _call('POST', url, '/v1/accounts', body: {
-      'email': normaliseEmail(email),
+    return {
       'salt': base64Encode(salt),
       'kdf': kdf.toJson(),
       'loginKey': base64Encode(keys.loginKey),
       'wrappedLibraryKey': base64Encode(await seal(keys.unlockKey, libraryKey)),
-    });
+    };
+  }
+
+  /// Creates the account. Returns the authenticator key to add to her authenticator app.
+  Future<String> signUp({required String serverUrl, required String email, required String password}) async {
+    final url = cleanServerUrl(serverUrl);
+    final libraryKey = randomBytes(32);
+    final body = await _passwordBody(password, libraryKey);
+    final j = await _call('POST', url, '/v1/accounts', body: {'email': normaliseEmail(email), ...body});
     await _save(
       AccountState(serverUrl: url, email: normaliseEmail(email), accountId: j['accountId']! as String, totpConfirmed: false),
       j['token']! as String,
@@ -187,9 +255,7 @@ class AccountService extends ChangeNotifier {
   Future<void> confirmTotp(String code) async {
     final s = _state!;
     await _guard(() => _call('POST', s.serverUrl, '/v1/totp/confirm', body: {'code': code.trim()}, token: _token));
-    await _secrets.write(_kTotp, 'true');
-    _state = AccountState(serverUrl: s.serverUrl, email: s.email, accountId: s.accountId, totpConfirmed: true);
-    notifyListeners();
+    await _update(s.copyWith(totpConfirmed: true));
   }
 
   Future<void> signIn({required String serverUrl, required String email, required String password}) async {
@@ -220,11 +286,8 @@ class AccountService extends ChangeNotifier {
     if (s == null) return;
     final j = await _guard(() => _call('GET', s.serverUrl, '/v1/account', token: _token));
     final confirmed = j['totpConfirmed'] == true;
-    if (confirmed != s.totpConfirmed) {
-      await _secrets.write(_kTotp, '$confirmed');
-      _state = AccountState(serverUrl: s.serverUrl, email: s.email, accountId: s.accountId, totpConfirmed: confirmed);
-      notifyListeners();
-    }
+    final email = j['email'] as String? ?? s.email;
+    if (confirmed != s.totpConfirmed || email != s.email) await _update(s.copyWith(email: email, totpConfirmed: confirmed));
   }
 
   /// Signs out on this phone. Her library stays on the phone.
@@ -246,6 +309,96 @@ class AccountService extends ChangeNotifier {
     final keys = await _keys(password, base64Decode(pre['salt']! as String), KdfParams.fromJson((pre['kdf']! as Map).cast<String, Object?>()));
     await _guard(() => _call('DELETE', s.serverUrl, '/v1/account', body: {'loginKey': base64Encode(keys.loginKey)}, token: _token));
     await _forget();
+  }
+
+  // ---------- Recovery, change password and email (step 3c) ----------
+
+  Future<RecoveryStatus> recoveryStatus() async {
+    final j = await authed('GET', '/v1/recovery');
+    return RecoveryStatus(passkey: j['passkey'] == true, code: j['code'] == true);
+  }
+
+  /// Keeps a copy of the library key on the server, locked by the passkey's secret.
+  Future<RecoveryStatus> savePasskeyRecovery({required String credentialId, required Uint8List prfSalt, required Uint8List secret}) async {
+    final wrapped = await seal(passkeyWrapKey(secret), _libraryKey!);
+    final j = await authed('PUT', '/v1/recovery', body: {
+      'passkey': {'credentialId': credentialId, 'prfSalt': base64Encode(prfSalt), 'wrapped': base64Encode(wrapped)},
+    });
+    return RecoveryStatus(passkey: j['passkey'] == true, code: j['code'] == true);
+  }
+
+  /// Makes a new recovery code (replacing any old one) and keeps a copy of the library key on the
+  /// server locked by it. The code is shown to her once and never stored.
+  Future<String> makeRecoveryCode() async {
+    final code = newRecoveryCode();
+    final wrapped = await seal(recoveryWrapKey(parseRecoveryCode(code)!), _libraryKey!);
+    await authed('PUT', '/v1/recovery', body: {'code': {'wrapped': base64Encode(wrapped)}});
+    return code;
+  }
+
+  /// A new password, with an authenticator code. Works when the old password is forgotten too.
+  /// Other devices are signed out and sign in again with the new one.
+  Future<void> changePassword({required String code, required String newPassword}) async {
+    final body = await _passwordBody(newPassword, _libraryKey!);
+    await authed('POST', '/v1/account/password', body: {...body, 'code': code.trim()});
+  }
+
+  Future<void> changeEmail({required String email, required String code}) async {
+    final j = await authed('POST', '/v1/account/email', body: {'email': normaliseEmail(email), 'code': code.trim()});
+    await _update(_state!.copyWith(email: j['email'] as String? ?? normaliseEmail(email)));
+  }
+
+  /// Forgotten password, step 1: email and authenticator code (not signed in).
+  Future<PasswordReset> startReset({required String serverUrl, required String email, required String code}) async {
+    final url = cleanServerUrl(serverUrl);
+    final j = await _call('POST', url, '/v1/reset/start', body: {'email': normaliseEmail(email), 'code': code.trim()});
+    final rec = (j['recovery'] as Map? ?? const {}).cast<String, Object?>();
+    final p = (rec['passkey'] as Map?)?.cast<String, Object?>();
+    final c = (rec['code'] as Map?)?.cast<String, Object?>();
+    return PasswordReset._(
+      serverUrl: url,
+      email: normaliseEmail(email),
+      accountId: j['accountId']! as String,
+      token: j['resetToken']! as String,
+      passkeyId: p?['credentialId'] as String?,
+      passkeySalt: p == null ? null : base64Decode(p['prfSalt']! as String),
+      passkeyWrapped: p == null ? null : base64Decode(p['wrapped']! as String),
+      codeWrapped: c == null ? null : base64Decode(c['wrapped']! as String),
+    );
+  }
+
+  /// Step 2, with the recovery code she kept.
+  Future<Uint8List> unlockWithCode(PasswordReset r, String code) async {
+    final bytes = parseRecoveryCode(code);
+    if (bytes == null) throw AccountProblem('That isn\'t a whole recovery code. It has 24 letters and numbers.');
+    try {
+      return await open(recoveryWrapKey(bytes), r.codeWrapped!);
+    } on SealException {
+      throw AccountProblem('That recovery code didn\'t open the library. Check it and try again.');
+    }
+  }
+
+  /// Step 2, with the secret her passkey gave.
+  Future<Uint8List> unlockWithPasskey(PasswordReset r, Uint8List secret) async {
+    try {
+      return await open(passkeyWrapKey(secret), r.passkeyWrapped!);
+    } on SealException {
+      throw AccountProblem('That passkey didn\'t open the library. Try your recovery code.');
+    }
+  }
+
+  /// Step 3: the new password. With [libraryKey] null the synced library starts again from this
+  /// phone's books (there was no way to unlock the old one). Signs in here; other devices are
+  /// signed out.
+  Future<void> finishReset(PasswordReset r, {required String newPassword, Uint8List? libraryKey}) async {
+    final key = libraryKey ?? randomBytes(32);
+    final body = await _passwordBody(newPassword, key);
+    final j = await _call('POST', r.serverUrl, '/v1/reset/finish', body: {'resetToken': r.token, 'fresh': libraryKey == null, ...body});
+    await _save(
+      AccountState(serverUrl: r.serverUrl, email: j['email'] as String? ?? r.email, accountId: j['accountId']! as String, totpConfirmed: true),
+      j['token']! as String,
+      key,
+    );
   }
 
   /// A signed-in call to the server, for sync. Signs out here if the server has ended the session.

@@ -16,6 +16,7 @@ import '../export/library_export.dart';
 import '../settings/appearance.dart';
 import '../theme/palette.dart';
 import 'account_screen.dart';
+import 'recovery_screens.dart';
 import 'restore_screen.dart';
 import 'sync_screens.dart';
 import 'widgets.dart';
@@ -29,10 +30,36 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int? _coverBytes;
 
+  /// Which ways back into the library are set up, for the account shown (loaded once, and again
+  /// after visiting that screen).
+  RecoveryStatus? _recovery;
+  String? _recoveryFor;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     _refreshSize();
+  }
+
+  Future<void> _loadRecovery(AccountService a) async {
+    final id = a.state?.accountId;
+    if (id == null || !a.state!.totpConfirmed) return;
+    _recoveryFor = id;
+    try {
+      final r = await a.recoveryStatus();
+      if (mounted && _recoveryFor == id) setState(() => _recovery = r);
+    } on AccountProblem {
+      // Offline: the tile just doesn't say.
+    }
+  }
+
+  Future<void> _syncNow() async {
+    final services = AppScope.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await services.sync.syncNow();
+    if (!ok && mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(services.sync.problem ?? 'Sync didn\'t finish. It will try again.'), persist: false));
+    }
   }
 
   Future<void> _refreshSize() async {
@@ -189,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         title: const Text('Delete your account?'),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('This deletes your account and everything synced to the server, for good. Your books stay on this phone. '
-              'Copies in the server\'s backups can\'t be opened once the account is gone.'),
+              'The server\'s own backups may keep a locked copy for a couple of weeks; nobody can open it without your password.'),
           const SizedBox(height: 16),
           TextField(controller: pw, obscureText: true, autofocus: true, decoration: const InputDecoration(labelText: 'Your password')),
         ]),
@@ -231,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             : last == null
                 ? 'Not yet'
                 : 'Last synced ${formatDate(last)}, ${two(last.hour)}:${two(last.minute)}'),
-        trailing: TextButton(onPressed: sync.syncing ? null : sync.syncNow, child: const Text('Sync now')),
+        trailing: TextButton(onPressed: sync.syncing ? null : _syncNow, child: const Text('Sync now')),
       ),
       if (sync.problemPersists)
         Padding(
@@ -274,6 +301,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       );
     }
     final cs = Theme.of(context).colorScheme;
+    if (_recoveryFor != s.accountId && s.totpConfirmed) {
+      _recovery = null;
+      _loadRecovery(a);
+    }
     return Card(
       child: Column(children: [
         ListTile(title: Text(s.email), subtitle: Text(s.serverUrl.replaceFirst(RegExp(r'^https?://'), ''))),
@@ -287,6 +318,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
               : Text('Set up', style: TextStyle(color: cs.tertiary, fontWeight: FontWeight.w600)),
           onTap: s.totpConfirmed ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const TotpSetupScreen())),
         ),
+        if (s.totpConfirmed) ...[
+          const Divider(indent: 16, endIndent: 16),
+          ListTile(
+            title: const Text('If you forget your password'),
+            subtitle: Text(switch (_recovery) {
+              null => 'A passkey or recovery code, to open your library on a new phone',
+              RecoveryStatus(passkey: true) => 'Passkey saved',
+              RecoveryStatus(code: true) => 'Recovery code made',
+              _ => 'Not set up yet. Without it, a forgotten password means starting the synced copy again.',
+            }),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () async {
+              await Navigator.of(context).push(MaterialPageRoute(builder: (_) => const RecoverySetupScreen()));
+              _loadRecovery(a);
+            },
+          ),
+          const Divider(indent: 16, endIndent: 16),
+          ListTile(
+            title: const Text('Change password'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChangePasswordScreen())),
+          ),
+          const Divider(indent: 16, endIndent: 16),
+          ListTile(
+            title: const Text('Change email'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ChangeEmailScreen())),
+          ),
+        ],
         const Divider(indent: 16, endIndent: 16),
         ListTile(title: const Text('Sign out'), trailing: const Icon(Icons.logout), onTap: () => _signOut(a)),
         const Divider(indent: 16, endIndent: 16),

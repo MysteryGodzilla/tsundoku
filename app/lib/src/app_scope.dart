@@ -4,6 +4,7 @@ library;
 import 'package:material_ui/material_ui.dart';
 
 import 'account/account_service.dart';
+import 'account/passkey_recovery.dart';
 import 'backup/backup_service.dart';
 import 'books/library_repository.dart';
 import 'covers/cover_store.dart';
@@ -13,7 +14,17 @@ import 'sources/book_source.dart';
 import 'sync/sync_service.dart';
 
 class AppServices {
-  AppServices({required this.library, required this.lookup, required this.covers, required this.appearance, required this.view, required this.backups, required this.account, required this.sync});
+  AppServices({
+    required this.library,
+    required this.lookup,
+    required this.covers,
+    required this.appearance,
+    required this.view,
+    required this.backups,
+    required this.account,
+    required this.sync,
+    PasskeyRecovery? passkeys,
+  }) : passkeys = passkeys ?? DevicePasskeys();
   final LibraryRepository library;
   final BookLookup lookup;
   final CoverStore covers;
@@ -22,6 +33,9 @@ class AppServices {
   final BackupService backups;
   final AccountService account;
   final SyncService sync;
+
+  /// Passkey recovery (step 3c); tests use a stand-in.
+  final PasskeyRecovery passkeys;
 }
 
 class AppScope extends InheritedWidget {

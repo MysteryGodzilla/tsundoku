@@ -4,7 +4,10 @@ import 'package:tsundoku_protocol/tsundoku_protocol.dart' show base32Decode, otp
 import 'package:url_launcher/url_launcher.dart';
 
 import '../account/account_service.dart';
+import '../account/server_address.dart';
 import '../app_scope.dart';
+import 'recovery_screens.dart';
+import 'server_warning.dart';
 
 /// Sign in or create an account for sync. Optional: the app works fully without one.
 class AccountScreen extends StatefulWidget {
@@ -41,11 +44,14 @@ class _AccountScreenState extends State<AccountScreen> {
     final account = AppScope.of(context).account;
     final nav = Navigator.of(context);
     try {
+      // Finds the server (https first, then plain http for a home server) and warns before plain http.
+      final url = await account.checkServer(_server.text);
+      if (isPlainHttp(url) && mounted && !await confirmPlainHttp(context, url)) return;
       if (_creating) {
-        final secret = await account.signUp(serverUrl: _server.text, email: _email.text, password: _password.text);
+        final secret = await account.signUp(serverUrl: url, email: _email.text, password: _password.text);
         nav.pushReplacement(MaterialPageRoute(builder: (_) => TotpSetupScreen(secret: secret)));
       } else {
-        await account.signIn(serverUrl: _server.text, email: _email.text, password: _password.text);
+        await account.signIn(serverUrl: url, email: _email.text, password: _password.text);
         if (account.state?.totpConfirmed == false) {
           nav.pushReplacement(MaterialPageRoute(builder: (_) => const TotpSetupScreen()));
         } else {
@@ -92,7 +98,12 @@ class _AccountScreenState extends State<AccountScreen> {
             controller: _server,
             keyboardType: TextInputType.url,
             autocorrect: false,
-            decoration: const InputDecoration(labelText: 'Sync server address', hintText: 'books.example.com'),
+            decoration: const InputDecoration(
+              labelText: 'Sync server address',
+              hintText: 'books.example.com',
+              helperText: 'From whoever runs it. A server at home looks like 10.0.0.20:8797.',
+              helperMaxLines: 2,
+            ),
             validator: (v) => (v ?? '').trim().isEmpty ? 'The address of your Tsundoku server' : null,
           ),
           const SizedBox(height: 14),
@@ -140,6 +151,15 @@ class _AccountScreenState extends State<AccountScreen> {
                 ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
                 : Text(_creating ? 'Create account' : 'Sign in'),
           ),
+          if (!_creating)
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () => Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ResetPasswordScreen(serverUrl: _server.text.trim(), email: _email.text.trim()),
+                      )),
+              child: const Text('Forgot password?'),
+            ),
           if (_creating)
             Padding(
               padding: const EdgeInsets.only(top: 16),
@@ -214,7 +234,8 @@ class _TotpSetupScreenState extends State<TotpSetupScreen> {
     final nav = Navigator.of(context);
     try {
       await AppScope.of(context).account.confirmTotp(_code.text);
-      nav.pop();
+      // Next: a way back into the library if the password is ever forgotten.
+      nav.pushReplacement(MaterialPageRoute(builder: (_) => const RecoverySetupScreen(firstTime: true)));
     } on AccountProblem catch (e) {
       setState(() => _error = e.message);
     } finally {
