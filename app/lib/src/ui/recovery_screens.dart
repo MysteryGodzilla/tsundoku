@@ -86,10 +86,13 @@ Widget _busyLabel(bool busy, String label) =>
 /// Ways to open the synced library on a new phone after a forgotten password: a passkey in her
 /// Google account (fingerprint), or a recovery code she keeps.
 class RecoverySetupScreen extends StatefulWidget {
-  const RecoverySetupScreen({super.key, this.firstTime = false});
+  const RecoverySetupScreen({super.key, this.firstTime = false, this.afterStartingAgain = false});
 
-  /// Straight after the authenticator setup: offers "Do this later".
+  /// Straight after the authenticator setup, or after starting again: offers "Do this later".
   final bool firstTime;
+
+  /// After a reset that started the synced library again: the old passkey and code are gone.
+  final bool afterStartingAgain;
   @override
   State<RecoverySetupScreen> createState() => _RecoverySetupScreenState();
 }
@@ -186,6 +189,20 @@ class _RecoverySetupScreenState extends State<RecoverySetupScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('If you forget your password')),
       body: ListView(padding: _pagePadding(context), children: [
+        if (widget.afterStartingAgain) ...[
+          Card(
+            color: cs.primaryContainer,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Your synced library has started again, so your old passkey and recovery code no longer open it. '
+                'Set up a new one now.',
+                style: tt.bodyLarge?.copyWith(color: cs.onPrimaryContainer),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
         Text(
           'Your authenticator app lets you set a new password. To open your synced library on a new phone after that, '
           'you also need one of these. Nobody else can open it for you, not even whoever runs the server.',
@@ -301,8 +318,17 @@ class _RecoveryCard extends StatelessWidget {
 
 enum _ResetStep { who, unlock, code, none, password }
 
+/// How a password reset ended, for the screen that opened it.
+enum ResetOutcome {
+  /// The library was unlocked: signed in as before.
+  signedIn,
+
+  /// Nothing could unlock it, so the synced library started again (its recovery copies are gone).
+  startedAgain,
+}
+
 /// Forgotten password, when no device is signed in: email and authenticator code, then the
-/// passkey or recovery code to open the library, then a new password.
+/// passkey or recovery code to open the library, then a new password. Pops with a [ResetOutcome].
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key, this.serverUrl = '', this.email = ''});
   final String serverUrl;
@@ -404,7 +430,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         content: Text(fresh ? 'New password set. Your synced library starts again from this phone.' : 'New password set. You\'re signed in.'),
         persist: false,
       ));
-      nav.pop(true);
+      nav.pop(fresh ? ResetOutcome.startedAgain : ResetOutcome.signedIn);
     });
   }
 

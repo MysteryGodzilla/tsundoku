@@ -372,6 +372,80 @@ void main() {
       await tester.runAsync(db.close);
     });
 
+    testWidgets('starting again goes to the recovery screen, then back where she started', (tester) async {
+      bridge.httpsWorks = false;
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+      final passkeys = FakePasskeys();
+      final services = await appServices(tester, db, passkeys);
+      final a = services.account;
+      late String secret;
+      late List<int> oldKey;
+      await tester.runAsync(() async {
+        secret = await a.signUp(serverUrl: home, email: email, password: password);
+        await a.confirmTotp(code(secret));
+        oldKey = a.libraryKey!;
+        await a.signOut();
+      });
+
+      Future<void> settle() async {
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      await tester.pumpWidget(AppScope(
+        services: services,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+                child: const Text('Settings stand-in'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Settings stand-in'));
+      await settle();
+      await tester.tap(find.text('Forgot password?'));
+      await settle();
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(1), email);
+      await tester.enterText(fields.at(2), code(secret));
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await settle();
+      await tester.tap(find.text('I understand the risks'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Carry on'));
+      await settle();
+      // No passkey or recovery code was set up, so the only way on is to start again.
+      await tester.tap(find.text('Start again from this phone'));
+      await settle();
+      final pw = find.byType(TextFormField);
+      await tester.enterText(pw.at(0), 'starting over again');
+      await tester.enterText(pw.at(1), 'starting over again');
+      await tester.tap(find.widgetWithText(FilledButton, 'Set new password'));
+      await settle();
+      expect(a.signedIn, isTrue);
+      expect(a.libraryKey, isNot(oldKey));
+      expect(find.text('If you forget your password'), findsOneWidget, reason: 'straight to setting up a new way back in');
+      expect(find.textContaining('no longer open it'), findsOneWidget);
+      expect(find.byType(AccountScreen), findsNothing);
+
+      await tester.tap(find.text('Save a passkey'));
+      await settle();
+      expect(passkeys.asked, 1);
+      await tester.tap(find.widgetWithText(FilledButton, 'Done'));
+      await settle();
+      expect(find.text('Settings stand-in'), findsOneWidget, reason: 'then back where she started');
+      await tester.runAsync(db.close);
+    });
+
     testWidgets('a plain http home server asks first: cancelling stops, agreeing carries on', (tester) async {
       bridge.httpsWorks = false;
       tester.view.physicalSize = const Size(800, 1600);

@@ -40,11 +40,20 @@ class _AccountScreenState extends State<AccountScreen> {
 
   Future<void> _forgotPassword() async {
     final nav = Navigator.of(context);
-    final done = await nav.push<bool>(MaterialPageRoute(
+    final outcome = await nav.push<ResetOutcome>(MaterialPageRoute(
       builder: (_) => ResetPasswordScreen(serverUrl: _server.text.trim(), email: _email.text.trim()),
     ));
-    // Reset and signed in: straight back to Settings, which shows it.
-    if (done == true && mounted) nav.pop();
+    if (!mounted) return;
+    switch (outcome) {
+      // Signed in: straight back to Settings, which shows it.
+      case ResetOutcome.signedIn:
+        nav.pop();
+      // Started again: the old passkey and code are gone, so set up a new one; then Settings.
+      case ResetOutcome.startedAgain:
+        nav.pushReplacement(MaterialPageRoute(builder: (_) => const RecoverySetupScreen(firstTime: true, afterStartingAgain: true)));
+      case null:
+        break;
+    }
   }
 
   @override

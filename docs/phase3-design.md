@@ -12,7 +12,7 @@ decided later.
 - **Nobody but her can read her library, including whoever runs the server.** Enforced by
   encryption on the device, not by hiding things in admin screens, and tested.
 - Email address as the login name; password; authenticator app (TOTP) for password resets; a passkey
-  (or, as a fallback, a recovery code) unlocks the library on a new phone. Email sending is optional.
+  (or, as a fallback, a recovery code) unlocks the library on a new phone. No email is sent.
 - App lock after 1 day unused (fingerprint, face or PIN); full sign-out after 30 days unused.
 - Changes are never silently lost; real conflicts are put to her.
 
@@ -86,11 +86,13 @@ Built 2026-11-15 as described, with these details settled.
   recovery copies. The app opens the library key with the passkey or code, then
   `POST /v1/reset/finish {resetToken, salt, kdf, loginKey, wrappedLibraryKey}` sets the new password
   and ends every session. With neither, `fresh: true` starts again with a new library key and the
-  server deletes the old events, photos and recovery copies, which nothing could open. Sync
-  progress is kept per library key (a short hash of it), so every device then syncs from the start.
+  server deletes the old events, photos and recovery copies, which nothing could open; the app then
+  goes straight to setting up a new passkey or recovery code. Sync progress is kept per library key
+  (a short hash of it), so every device then syncs from the start.
 - **Signed-in device, password forgotten or not:** `POST /v1/account/password` with an
   authenticator code and the new password's keys (same library key); other sessions end.
-- **Change email:** `POST /v1/account/email {email, code}`. No email is sent (none is set up).
+- **Change email:** `POST /v1/account/email {email, code}`. No email is ever sent: the
+  authenticator and passkey cover recovery (Mystery, 2026-11-15).
 - **Home servers:** with no scheme the app tries https, then plain http; plain http needs her
   agreement after a warning. Each sync starts with a 10-second `/v1/health` check, so an
   unreachable server fails fast; for home-network addresses the notice waits 7 days, not 1.

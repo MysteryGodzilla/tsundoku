@@ -1,2 +1,2 @@
 /// Keep in step with `version:` in pubspec.yaml.
-const appVersion = '0.5.1';
+const appVersion = '0.5.2';

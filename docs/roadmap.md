@@ -310,7 +310,7 @@ The core job, with no accounts and no server.
 
 ### Phase 3: accounts and sync (self-hosted server)
 - The server: accounts, authenticator set-up and password reset, passkey recovery (or the code
-  fallback), optional email verification when mail is set up, change email,
+  fallback), change email (no email is ever sent: dropped 2026-11-15),
   app lock (fingerprint, face or PIN after 1 day), long-inactivity logout, delete account.
 - End-to-end encrypted sync between devices; conflict questions; the unsynced-changes list.
 - Server backups and restore; the admin view (counts, suspend, health) with no library access.
@@ -373,13 +373,17 @@ The core job, with no accounts and no server.
   - **Tried on her phone 2026-11-15** against a server on this computer, over the USB cable only
     (`adb reverse`), with her real library: the plain-http warning (cancel, then agree), the
     authenticator (the link opened Microsoft Authenticator), a passkey (one fingerprint), a recovery
-    code, the first upload (the server's file held nothing readable), change password, change email,
+    code, the first upload (all 8 of her books arrived, her own photo included; the server's file
+    held nothing readable), change password, change email,
     sign out, both forgotten-password routes (passkey, recovery code), "can't be reached" straight
     away with the cable out, and deleting the account (the server was left empty). Two-device sync on
     real phones still waits for a reachable server.
   - **0.5.1** (from that test): the server address is remembered after signing out (for signing in
     and for a forgotten password), and a password reset goes back to Settings instead of an empty
     sign-in form. With its tests: 92 automated tests (app 57).
+  - **0.5.2:** after a reset that starts the synced library again, the app goes straight to setting
+    up a new passkey or recovery code (the old ones no longer open it), then back to Settings.
+    93 automated tests (app 58).
 
 ### Phase 4: desktop
 - The web build: the same library in a desktop browser, with webcam scanning and offline use.
@@ -471,8 +475,9 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-15 | Plain http is allowed but not recommended: the app explains the risk, recommends https and needs her agreement first; the guide says the same | Mystery |
 | 2026-11-15 | Docker: a Dockerfile and compose.yaml for the server, with Docker instructions in the guide | Mystery |
 | 2026-11-15 | A home-network server waits a week before the "sync hasn't worked" notice (an internet server: a day) | Mystery |
-| 2026-11-15 | Email sending stays out for now (no feature needs it; changing email takes an authenticator code) | recommendation, to confirm |
+| 2026-11-15 | No email sending: it was only ever for recovery, which the authenticator app and passkey (or recovery code) now cover; changing email takes an authenticator code | Mystery |
 | 2026-11-15 | Correction: deleting an account can't reach into the server's older backups; they keep a locked copy until they age out | correction |
 | 2026-11-15 | Phase 2 sorting and filtering approved. The chips under the search bar go into the Filters menu: format (Physical, Kindle) first, status second, then author, genre and rating as now. Built at the end of Phase 3 | product owner |
 | 2026-11-15 | The last server address is remembered after signing out; a password reset returns to Settings | Mystery (tested) |
 | 2026-11-15 | Step 3c works on her phone (single device, server over USB): recovery, reset, change password and email, delete | Mystery (tested) |
+| 2026-11-15 | After a reset that starts the synced library again, go straight to setting up a new passkey or recovery code | Mystery |
