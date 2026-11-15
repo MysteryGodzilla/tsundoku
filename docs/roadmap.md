@@ -470,7 +470,7 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-15 | Home-network servers (a local address like 10.0.0.20:8797) are supported; the guide says to run the server with `--host 0.0.0.0` for them | Mystery |
 | 2026-11-15 | Plain http is allowed but not recommended: the app explains the risk, recommends https and needs her agreement first; the guide says the same | Mystery |
 | 2026-11-15 | Docker: a Dockerfile and compose.yaml for the server, with Docker instructions in the guide | Mystery |
-| 2026-11-15 | A home-network server waits a week before the "sync hasn't worked" notice (an internet server: a day) | recommendation, to confirm |
+| 2026-11-15 | A home-network server waits a week before the "sync hasn't worked" notice (an internet server: a day) | Mystery |
 | 2026-11-15 | Email sending stays out for now (no feature needs it; changing email takes an authenticator code) | recommendation, to confirm |
 | 2026-11-15 | Correction: deleting an account can't reach into the server's older backups; they keep a locked copy until they age out | correction |
 | 2026-11-15 | Phase 2 sorting and filtering approved. The chips under the search bar go into the Filters menu: format (Physical, Kindle) first, status second, then author, genre and rating as now. Built at the end of Phase 3 | product owner |
