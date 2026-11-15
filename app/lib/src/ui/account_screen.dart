@@ -26,6 +26,26 @@ class _AccountScreenState extends State<AccountScreen> {
   bool _busy = false;
   bool _showPassword = false;
   String? _error;
+  bool _filled = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_filled) return;
+    _filled = true;
+    // The server she used last time, as she'd type it (https is assumed when left off).
+    final last = AppScope.of(context).account.lastServerUrl;
+    if (last != null) _server.text = last.replaceFirst(RegExp(r'^https://'), '');
+  }
+
+  Future<void> _forgotPassword() async {
+    final nav = Navigator.of(context);
+    final done = await nav.push<bool>(MaterialPageRoute(
+      builder: (_) => ResetPasswordScreen(serverUrl: _server.text.trim(), email: _email.text.trim()),
+    ));
+    // Reset and signed in: straight back to Settings, which shows it.
+    if (done == true && mounted) nav.pop();
+  }
 
   @override
   void dispose() {
@@ -152,14 +172,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 : Text(_creating ? 'Create account' : 'Sign in'),
           ),
           if (!_creating)
-            TextButton(
-              onPressed: _busy
-                  ? null
-                  : () => Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ResetPasswordScreen(serverUrl: _server.text.trim(), email: _email.text.trim()),
-                      )),
-              child: const Text('Forgot password?'),
-            ),
+            TextButton(onPressed: _busy ? null : _forgotPassword, child: const Text('Forgot password?')),
           if (_creating)
             Padding(
               padding: const EdgeInsets.only(top: 16),

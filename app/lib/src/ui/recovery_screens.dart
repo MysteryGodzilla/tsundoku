@@ -404,7 +404,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         content: Text(fresh ? 'New password set. Your synced library starts again from this phone.' : 'New password set. You\'re signed in.'),
         persist: false,
       ));
-      nav.pop();
+      nav.pop(true);
     });
   }
 

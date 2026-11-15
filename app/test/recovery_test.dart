@@ -283,6 +283,95 @@ void main() {
       });
     });
 
+    Future<AppServices> appServices(WidgetTester tester, AppDatabase db, FakePasskeys passkeys) async {
+      SharedPreferences.setMockInitialValues({});
+      return (await tester.runAsync(() async {
+        final library = LibraryRepository(db);
+        final covers = CoverStore(BookLookup([OpenLibrarySource()]), baseDir: () async => dir);
+        final account = AccountService(secrets: MemorySecretStore(), client: bridge, kdf: KdfParams.fastForTests);
+        return AppServices(
+          library: library,
+          lookup: BookLookup([OpenLibrarySource()]),
+          covers: covers,
+          appearance: await AppearanceSettings.load(),
+          view: await ViewSettings.load(),
+          backups: BackupService(library: library, covers: covers, prefs: await SharedPreferences.getInstance(), localDir: () async => dir),
+          account: account,
+          sync: SyncService(library: library, covers: covers, account: account),
+          passkeys: passkeys,
+        );
+      }))!;
+    }
+
+    testWidgets('after signing out the address is remembered; a reset with the passkey goes back to where she started', (tester) async {
+      bridge.httpsWorks = false;
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+      final passkeys = FakePasskeys();
+      final services = await appServices(tester, db, passkeys);
+      final a = services.account;
+      late String secret;
+      await tester.runAsync(() async {
+        secret = await a.signUp(serverUrl: home, email: email, password: password);
+        await a.confirmTotp(code(secret));
+        final d = (await passkeys.create(accountId: a.state!.accountId, email: email))!;
+        await a.savePasskeyRecovery(credentialId: d.credentialId, prfSalt: d.prfSalt, secret: d.secret);
+        await a.signOut();
+      });
+      expect(a.signedIn, isFalse);
+
+      Future<void> settle() async {
+        for (var i = 0; i < 10; i++) {
+          await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 40)));
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      await tester.pumpWidget(AppScope(
+        services: services,
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AccountScreen())),
+                child: const Text('Settings stand-in'),
+              ),
+            ),
+          ),
+        ),
+      ));
+      await tester.tap(find.text('Settings stand-in'));
+      await settle();
+      expect(find.widgetWithText(TextFormField, home), findsOneWidget, reason: 'the last server is filled in');
+
+      await tester.tap(find.text('Forgot password?'));
+      await settle();
+      final fields = find.byType(TextFormField);
+      expect(tester.widget<TextFormField>(fields.at(0)).controller!.text, home, reason: 'and on the reset screen too');
+      await tester.enterText(fields.at(1), email);
+      await tester.enterText(fields.at(2), code(secret));
+      await tester.tap(find.widgetWithText(FilledButton, 'Next'));
+      await settle();
+      await tester.tap(find.text('I understand the risks'));
+      await tester.pump();
+      await tester.tap(find.widgetWithText(FilledButton, 'Carry on'));
+      await settle();
+      await tester.tap(find.text('Use my passkey'));
+      await settle();
+      final pw = find.byType(TextFormField);
+      await tester.enterText(pw.at(0), 'a brand new password');
+      await tester.enterText(pw.at(1), 'a brand new password');
+      await tester.tap(find.widgetWithText(FilledButton, 'Set new password'));
+      await settle();
+      expect(a.signedIn, isTrue);
+      expect(find.text('Settings stand-in'), findsOneWidget, reason: 'back where she started, not on the sign-in form');
+      expect(find.byType(AccountScreen), findsNothing);
+      expect(find.text('New password set. You\'re signed in.'), findsOneWidget);
+      await tester.runAsync(db.close);
+    });
+
     testWidgets('a plain http home server asks first: cancelling stops, agreeing carries on', (tester) async {
       bridge.httpsWorks = false;
       tester.view.physicalSize = const Size(800, 1600);

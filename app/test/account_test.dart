@@ -110,7 +110,19 @@ void main() {
     test('sign out forgets the account here and ends the session', () async {
       await phone1.signOut();
       expect(phone1.signedIn, isFalse);
-      expect(secrets1.values, isEmpty);
+      expect(secrets1.values.keys, ['account.lastServer'], reason: 'only the address is kept, for next time');
+      final again = device(secrets1);
+      await again.load();
+      expect((again.signedIn, again.lastServerUrl), (false, 'http://sync.example.com'));
+    });
+
+    test('a phone signed in before 0.5.1 adopts its server as the remembered one', () async {
+      secrets1.values.remove('account.lastServer');
+      final again = device(secrets1);
+      await again.load();
+      expect(again.lastServerUrl, 'http://sync.example.com');
+      await again.signOut();
+      expect(secrets1.values.keys, ['account.lastServer']);
       expect(store.db.select('SELECT COUNT(*) AS n FROM sessions').first['n'], 0);
     });
 

@@ -15,6 +15,7 @@ import 'server_address.dart' as address;
 abstract interface class SecretStore {
   Future<String?> read(String key);
   Future<void> write(String key, String value);
+  Future<void> delete(String key);
   Future<void> deleteAll();
 }
 
@@ -26,6 +27,8 @@ class DeviceSecretStore implements SecretStore {
   @override
   Future<void> write(String key, String value) => _s.write(key: key, value: value);
   @override
+  Future<void> delete(String key) => _s.delete(key: key);
+  @override
   Future<void> deleteAll() => _s.deleteAll();
 }
 
@@ -35,6 +38,8 @@ class MemorySecretStore implements SecretStore {
   Future<String?> read(String key) async => values[key];
   @override
   Future<void> write(String key, String value) async => values[key] = value;
+  @override
+  Future<void> delete(String key) async => values.remove(key);
   @override
   Future<void> deleteAll() async => values.clear();
 }
@@ -110,14 +115,27 @@ class AccountService extends ChangeNotifier {
   AccountState? get state => _state;
   bool get signedIn => _state != null;
 
+  /// The server last signed in to, kept after signing out so she needn't type it again. An
+  /// address isn't a secret; the session and keys are what signing out removes.
+  String? get lastServerUrl => _lastServer;
+  String? _lastServer;
+
   /// The key that encrypts her synced library. Only in memory and secure storage.
   Uint8List? get libraryKey => _libraryKey;
 
   static const _kUrl = 'account.server', _kEmail = 'account.email', _kId = 'account.id';
   static const _kToken = 'account.token', _kLib = 'account.libraryKey', _kTotp = 'account.totpConfirmed';
+  static const _kLast = 'account.lastServer';
+  static const _sessionKeys = [_kUrl, _kEmail, _kId, _kToken, _kLib, _kTotp];
 
   Future<void> load() async {
+    _lastServer = await _secrets.read(_kLast);
     final url = await _secrets.read(_kUrl);
+    if (_lastServer == null && url != null) {
+      // Signed in before 0.5.1 remembered it.
+      await _secrets.write(_kLast, url);
+      _lastServer = url;
+    }
     final token = await _secrets.read(_kToken);
     final lib = await _secrets.read(_kLib);
     if (url == null || token == null || lib == null) return;
@@ -139,6 +157,8 @@ class AccountService extends ChangeNotifier {
     await _secrets.write(_kTotp, '${s.totpConfirmed}');
     await _secrets.write(_kToken, token);
     await _secrets.write(_kLib, base64Encode(libraryKey));
+    await _secrets.write(_kLast, s.serverUrl);
+    _lastServer = s.serverUrl;
     _state = s;
     _token = token;
     _libraryKey = libraryKey;
@@ -152,9 +172,11 @@ class AccountService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Forget the account on this phone. Her library stays.
+  /// Forget the account on this phone (all but the server's address). Her library stays.
   Future<void> _forget() async {
-    await _secrets.deleteAll();
+    for (final k in _sessionKeys) {
+      await _secrets.delete(k);
+    }
     _state = null;
     _token = null;
     _libraryKey = null;
