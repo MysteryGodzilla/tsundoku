@@ -58,8 +58,9 @@ Future<void> scanAndShow(BuildContext context) async {
   }
 }
 
-Future<void> openFind(BuildContext context, {String initial = ''}) =>
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => FindScreen(initialQuery: initial)));
+/// [scannedIsbn]: she scanned a book Open Library doesn't know and is searching for it instead.
+Future<void> openFind(BuildContext context, {String initial = '', String? scannedIsbn}) =>
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => FindScreen(initialQuery: initial, scannedIsbn: scannedIsbn)));
 
 Future<void> openManualEntry(BuildContext context, {String? isbn13, String? title}) async {
   final id = await Navigator.of(context)
@@ -129,18 +130,21 @@ Future<void> lookupIsbnAndShow(BuildContext context, String isbn13) async {
   messenger.hideCurrentSnackBar();
   if (!context.mounted) return;
   if (found == null) {
-    final add = await showDialog<bool>(
+    // Often it's only this edition that's missing: search first (her choice, 2026-11-21). The
+    // search offers entering it by hand when it finds nothing.
+    final search = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: const Text('Not found'),
-        content: Text('Open Library doesn\'t know ISBN $isbn13. You can enter the book by hand.'),
+        content: Text('Open Library doesn\'t know ISBN $isbn13. It may have another edition of the same book: '
+            'search for it by title or author.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Enter by hand')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Search')),
         ],
       ),
     );
-    if (add == true && context.mounted) await openManualEntry(context, isbn13: isbn13);
+    if (search == true && context.mounted) await openFind(context, scannedIsbn: isbn13);
     return;
   }
   final owned = await services.library.findOwned(found);
@@ -204,9 +208,11 @@ Future<void> showOwnedSheet(BuildContext context, LibraryBook book) => showModal
     );
 
 /// A match from a source, to confirm and add as Physical or Kindle. If she owns it already
-/// (any edition or format), it says so instead.
-Future<void> showCandidateSheet(BuildContext context, Candidate c, {LibraryBook? owned}) async {
+/// (any edition or format), it says so instead. With [scannedIsbn] (searching after a scan Open
+/// Library didn't know) the book is saved with the ISBN she scanned.
+Future<void> showCandidateSheet(BuildContext context, Candidate c, {LibraryBook? owned, String? scannedIsbn}) async {
   if (owned != null) return showOwnedSheet(context, owned);
+  if (scannedIsbn != null) c = c.forScannedCopy(scannedIsbn);
   final result = await showModalBottomSheet<Object>(
     context: context,
     isScrollControlled: true,

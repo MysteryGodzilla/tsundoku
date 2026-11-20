@@ -49,7 +49,10 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   edition, and the other way round. One copy per book; no multiple-copy tracking.
 - Add a book four ways: scan the barcode, type the ISBN, search title and/or author and pick the
   right result, or enter it by hand. One book at a time; no bulk import.
-- Book information comes from Open Library only. If it can't find a book, you type the details.
+- Book information comes from Open Library only. If a scanned or typed ISBN isn't there, the app
+  suggests searching by title or author first, since another edition often is; if the search finds
+  nothing either, you type the details. An edition added that way keeps the ISBN you scanned, so
+  scanning that copy again shows you own it (her choice, 2026-11-21).
   A book can always be saved, even with no ISBN (common for Kindle), no cover or missing details.
 - Scanning shows the match and asks you to confirm before adding. If the camera isn't available
   or scanning fails, you can type the ISBN.
@@ -482,3 +485,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-15 | Step 3c works on her phone (single device, server over USB): recovery, reset, change password and email, delete | Mystery (tested) |
 | 2026-11-15 | After a reset that starts the synced library again, go straight to setting up a new passkey or recovery code | Mystery |
 | 2026-11-15 | The filters change goes in now (0.5.3), not at the end of Phase 3: it's what she sees first | Mystery |
+| 2026-11-21 | A scan (or typed ISBN) Open Library doesn't know steers to searching by title or author, not to entering it by hand; a search that finds nothing offers entering it by hand. Built in 0.5.4 | product owner |
+| 2026-11-21 | An edition added from that search is saved with the ISBN she scanned (as its ISBN, and kept with the edition's own), so the next scan of that copy shows ALREADY OWNED | recommendation, to confirm |

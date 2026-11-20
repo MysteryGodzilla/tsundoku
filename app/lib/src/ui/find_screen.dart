@@ -10,8 +10,11 @@ import 'widgets.dart';
 
 /// Search Open Library by title and/or author, with ALREADY OWNED on books she has.
 class FindScreen extends StatefulWidget {
-  const FindScreen({super.key, this.initialQuery = ''});
+  const FindScreen({super.key, this.initialQuery = '', this.scannedIsbn});
   final String initialQuery;
+
+  /// Searching after a scan Open Library didn't know: whatever she adds keeps this ISBN.
+  final String? scannedIsbn;
 
   @override
   State<FindScreen> createState() => _FindScreenState();
@@ -24,6 +27,9 @@ class _FindScreenState extends State<FindScreen> {
   List<(Candidate, LibraryBook?)> _results = const [];
   String? _message;
   bool _loading = false;
+
+  /// A search ran and found nothing: entering it by hand becomes the way on.
+  bool _nothing = false;
 
   @override
   void initState() {
@@ -49,6 +55,7 @@ class _FindScreenState extends State<FindScreen> {
       setState(() {
         _results = const [];
         _message = null;
+        _nothing = false;
         _loading = false;
       });
       return;
@@ -64,7 +71,8 @@ class _FindScreenState extends State<FindScreen> {
       if (mine != _seq || !mounted) return;
       setState(() {
         _results = withOwned;
-        _message = found.isEmpty ? 'Nothing found on Open Library.' : null;
+        _message = found.isEmpty ? 'Nothing found on Open Library. Try fewer words, or just the title.' : null;
+        _nothing = found.isEmpty;
         _loading = false;
       });
     } catch (_) {
@@ -72,6 +80,7 @@ class _FindScreenState extends State<FindScreen> {
       setState(() {
         _results = const [];
         _message = 'Open Library can\'t be reached.';
+        _nothing = false;
         _loading = false;
       });
     }
@@ -85,9 +94,16 @@ class _FindScreenState extends State<FindScreen> {
     if (mounted) setState(() => _results = updated);
   }
 
+  void _enterByHand() => openManualEntry(
+        context,
+        isbn13: widget.scannedIsbn,
+        title: _ctl.text.trim().isEmpty ? null : _ctl.text.trim(),
+      );
+
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final searched = _results.isNotEmpty || _nothing;
     return Scaffold(
       appBar: AppBar(title: const Text('Find a book')),
       body: Column(children: [
@@ -102,22 +118,34 @@ class _FindScreenState extends State<FindScreen> {
             onSubmitted: _run,
           ),
         ),
+        if (widget.scannedIsbn != null && !searched)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+            child: Text(
+              'Search for the book you scanned. Whichever edition you add, it\'s saved with your copy\'s ISBN '
+              '(${widget.scannedIsbn}), so scanning it next time shows you own it.',
+              style: TextStyle(color: muted),
+            ),
+          ),
         if (_loading) const LinearProgressIndicator(minHeight: 2),
         if (_message != null) Padding(padding: const EdgeInsets.all(16), child: Text(_message!, style: TextStyle(color: muted))),
+        if (_nothing)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: SizedBox(width: double.infinity, child: FilledButton(onPressed: _enterByHand, child: const Text('Enter it by hand'))),
+          ),
         Expanded(
           child: ListView.separated(
             padding: EdgeInsets.only(bottom: 16 + MediaQuery.paddingOf(context).bottom),
-            itemCount: _results.length + 1,
+            // After the results, a quieter way to enter it by hand (none before she has searched).
+            itemCount: _results.length + (_results.isEmpty ? 0 : 1),
             separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
             itemBuilder: (context, i) {
               if (i == _results.length) {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
-                    child: TextButton(
-                      onPressed: () => openManualEntry(context, title: _ctl.text.trim().isEmpty ? null : _ctl.text.trim()),
-                      child: const Text('Can\'t find it? Enter it by hand'),
-                    ),
+                    child: TextButton(onPressed: _enterByHand, child: const Text('Can\'t find it? Enter it by hand')),
                   ),
                 );
               }
@@ -125,7 +153,7 @@ class _FindScreenState extends State<FindScreen> {
               final meta = [c.authorLine, c.publishedDate].whereType<String>().where((s) => s.isNotEmpty).join(' · ');
               return InkWell(
                 onTap: () async {
-                  await showCandidateSheet(context, c, owned: owned);
+                  await showCandidateSheet(context, c, owned: owned, scannedIsbn: widget.scannedIsbn);
                   await _refreshOwned();
                 },
                 child: Padding(

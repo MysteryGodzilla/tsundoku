@@ -85,4 +85,20 @@ class Candidate {
         ...identifiers,
         if (isbn13 != null && !identifiers.any((i) => i.scheme == Schemes.isbn13)) Identifier(Schemes.isbn13, isbn13!),
       ];
+
+  /// The same book, for her copy with ISBN [scanned]: another edition found by searching after a
+  /// scan Open Library didn't know. Her ISBN becomes the book's ISBN and is kept with the others,
+  /// so scanning that copy again finds it ALREADY OWNED.
+  Candidate forScannedCopy(String scanned) => Candidate(
+        sourceId: sourceId,
+        title: title,
+        authors: authors,
+        isbn13: scanned,
+        publisher: publisher,
+        publishedDate: publishedDate,
+        edition: edition,
+        subjects: subjects,
+        coverRef: coverRef,
+        identifiers: [...allIdentifiers, Identifier(Schemes.isbn13, scanned)],
+      );
 }
