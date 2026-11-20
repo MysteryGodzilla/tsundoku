@@ -48,6 +48,30 @@ class Identifier {
 }
 
 /// A book as a lookup source describes it, before it's in the library.
+/// A series a book belongs to, and its place in it (her request, 2026-11-21: shown, not grouped).
+class BookSeries {
+  const BookSeries(this.name, [this.position]);
+  final String name;
+
+  /// As the source gives it: usually a number ("3"), sometimes not ("0.5", "Prequel").
+  final String? position;
+
+  /// "Book 3", or the position as given when it isn't a plain number.
+  String? get positionLabel {
+    final p = position?.trim();
+    if (p == null || p.isEmpty) return null;
+    return RegExp(r'^\d+(\.\d+)?$').hasMatch(p) ? 'Book $p' : p;
+  }
+
+  /// "Dune · Book 3", or just "Dune".
+  String get label => positionLabel == null ? name : '$name · $positionLabel';
+
+  @override
+  bool operator ==(Object other) => other is BookSeries && other.name == name && other.position == position;
+  @override
+  int get hashCode => Object.hash(name, position);
+}
+
 class Candidate {
   const Candidate({
     required this.sourceId,
@@ -60,6 +84,7 @@ class Candidate {
     this.subjects = const [],
     this.coverRef,
     this.identifiers = const [],
+    this.series,
   });
 
   /// Which [BookSource] it came from (e.g. `openlibrary`).
@@ -78,7 +103,25 @@ class Candidate {
   final String? coverRef;
   final List<Identifier> identifiers;
 
+  /// The series, when the source knows it (Open Library links works to series records).
+  final BookSeries? series;
+
   String get authorLine => authors.join(', ');
+
+  /// The same book with its series filled in.
+  Candidate withSeries(BookSeries? s) => Candidate(
+        sourceId: sourceId,
+        title: title,
+        authors: authors,
+        isbn13: isbn13,
+        publisher: publisher,
+        publishedDate: publishedDate,
+        edition: edition,
+        subjects: subjects,
+        coverRef: coverRef,
+        identifiers: identifiers,
+        series: s,
+      );
 
   /// Identifiers including the ISBN, for the owned check.
   List<Identifier> get allIdentifiers => [
@@ -100,5 +143,6 @@ class Candidate {
         subjects: subjects,
         coverRef: coverRef,
         identifiers: [...allIdentifiers, Identifier(Schemes.isbn13, scanned)],
+        series: series,
       );
 }

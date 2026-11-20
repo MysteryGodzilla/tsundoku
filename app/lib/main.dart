@@ -98,10 +98,12 @@ class _BackupHookState extends State<_BackupHook> {
     _lifecycle = AppLifecycleListener(onResume: () {
       widget.services.backups.runIfDue();
       widget.services.sync.syncNow();
+      widget.services.seriesFiller.run();
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       widget.services.backups.runIfDue();
       widget.services.sync.syncNow();
+      widget.services.seriesFiller.run();
     });
   }
 

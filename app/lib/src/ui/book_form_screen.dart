@@ -33,6 +33,8 @@ class _BookFormScreenState extends State<BookFormScreen> {
   late final _isbn = TextEditingController(text: widget.book?.row.isbn13 ?? widget.isbn13 ?? '');
   late final _publisher = TextEditingController(text: widget.book?.row.publisher ?? '');
   late final _published = TextEditingController(text: widget.book?.row.publishedDate ?? '');
+  late final _series = TextEditingController(text: widget.book?.row.series ?? '');
+  late final _seriesNumber = TextEditingController(text: widget.book?.row.seriesPosition ?? '');
   late OwnershipFormat _format = widget.book?.format ?? OwnershipFormat.physical;
 
   /// A new photo to save, or [_removePhoto] to go back to the downloaded cover.
@@ -44,7 +46,7 @@ class _BookFormScreenState extends State<BookFormScreen> {
 
   @override
   void dispose() {
-    for (final c in [_title, _authors, _isbn, _publisher, _published]) {
+    for (final c in [_title, _authors, _isbn, _publisher, _published, _series, _seriesNumber]) {
       c.dispose();
     }
     super.dispose();
@@ -96,10 +98,14 @@ class _BookFormScreenState extends State<BookFormScreen> {
           publisher: _opt(_publisher),
           publishedDate: _opt(_published),
           format: _format,
+          series: _opt(_series),
+          seriesPosition: _opt(_series) == null ? null : _opt(_seriesNumber),
           clear: {
             if (isbn == null && b.row.isbn13 != null) 'isbn13',
             if (_opt(_publisher) == null && b.row.publisher != null) 'publisher',
             if (_opt(_published) == null && b.row.publishedDate != null) 'publishedDate',
+            if (_opt(_series) == null && b.row.series != null) 'series',
+            if ((_opt(_series) == null || _opt(_seriesNumber) == null) && b.row.seriesPosition != null) 'seriesPosition',
           },
         ),
       );
@@ -134,6 +140,7 @@ class _BookFormScreenState extends State<BookFormScreen> {
         publisher: _opt(_publisher),
         publishedDate: _opt(_published),
         format: _format,
+        series: _opt(_series) == null ? null : BookSeries(_opt(_series)!, _opt(_seriesNumber)),
       );
     }
     if (_photo != null) {
@@ -225,6 +232,22 @@ class _BookFormScreenState extends State<BookFormScreen> {
           TextFormField(controller: _publisher, textCapitalization: TextCapitalization.words, decoration: const InputDecoration(labelText: 'Publisher (optional)')),
           const SizedBox(height: 14),
           TextFormField(controller: _published, decoration: const InputDecoration(labelText: 'Published (optional)', hintText: 'e.g. 2021')),
+          const SizedBox(height: 14),
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Expanded(
+              flex: 3,
+              child: TextFormField(
+                controller: _series,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Series (optional)', hintText: 'e.g. Dune'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: TextFormField(controller: _seriesNumber, decoration: const InputDecoration(labelText: 'Book number', hintText: 'e.g. 3')),
+            ),
+          ]),
           const SizedBox(height: 28),
           FilledButton(onPressed: _saving ? null : _save, child: Text(_editing ? 'Save changes' : 'Add to library')),
         ]),

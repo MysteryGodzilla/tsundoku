@@ -10,7 +10,7 @@ import 'package:http/http.dart' as http;
 import '../books/models.dart';
 import 'book_source.dart';
 
-class OpenLibrarySource implements BookSource {
+class OpenLibrarySource implements BookSource, SeriesSource {
   OpenLibrarySource({http.Client? client, this.appVersion = '0.1.0'}) : _client = client ?? http.Client();
 
   static const _base = 'https://openlibrary.org';
@@ -51,6 +51,31 @@ class OpenLibrarySource implements BookSource {
 
   static String _stripPrefix(String key) => key.split('/').last;
 
+  /// Series names by key: a series is shared by many books, so each is fetched once.
+  final _seriesNames = <String, String?>{};
+
+  /// A work's series, from its `series` list (`[{series: {key}, position}]`, Open Library's
+  /// series records, 2026). The free-text `series` on editions is ignored: it mixes publishers'
+  /// imprints, other languages and odd numbering.
+  Future<BookSeries?> _seriesOfWork(Map<String, dynamic>? w) async {
+    for (final s in ((w?['series'] as List?) ?? const []).whereType<Map>()) {
+      final key = (s['series'] as Map?)?['key'] as String?;
+      if (key == null || !key.startsWith('/series/')) continue;
+      final name = _seriesNames.containsKey(key) ? _seriesNames[key] : (_seriesNames[key] = (await _getJson('$key.json'))?['name'] as String?);
+      if (name == null || name.trim().isEmpty) continue;
+      final position = s['position'];
+      return BookSeries(name.trim(), position == null || '$position'.trim().isEmpty ? null : '$position'.trim());
+    }
+    return null;
+  }
+
+  @override
+  Future<BookSeries?> seriesFor(List<Identifier> identifiers) async {
+    final work = identifiers.where((i) => i.scheme == Schemes.openLibraryWork).firstOrNull;
+    if (work == null) return null;
+    return _seriesOfWork(await _getJson('/works/${work.value}.json'));
+  }
+
   @override
   Future<Candidate?> lookupIsbn(String isbn13) async {
     final e = await _getJson('/isbn/$isbn13.json');
@@ -58,10 +83,13 @@ class OpenLibrarySource implements BookSource {
     final workKey = _keys(e['works']).firstOrNull;
     var authorKeys = _keys(e['authors']);
     List<String> subjects = ((e['subjects'] as List?) ?? const []).whereType<String>().toList();
-    if (workKey != null && (authorKeys.isEmpty || subjects.isEmpty)) {
+    BookSeries? series;
+    if (workKey != null) {
+      // The work holds the series (and fills in authors or subjects the edition lacks).
       final w = await _getJson('$workKey.json');
       if (authorKeys.isEmpty) authorKeys = _keys(w?['authors'], 'author');
       if (subjects.isEmpty) subjects = ((w?['subjects'] as List?) ?? const []).whereType<String>().toList();
+      series = await _seriesOfWork(w);
     }
     final authors = <String>[];
     for (final k in authorKeys.take(4)) {
@@ -86,6 +114,7 @@ class OpenLibrarySource implements BookSource {
         if (workKey != null) Identifier(Schemes.openLibraryWork, _stripPrefix(workKey)),
         if (editionKey != null) Identifier(Schemes.openLibraryEdition, _stripPrefix(editionKey)),
       ],
+      series: series,
     );
   }
 

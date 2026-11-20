@@ -51,12 +51,14 @@ const _fieldLabels = {
   'coverRef': 'Cover',
   'genres': 'Genres',
   'photo': 'Cover photo',
+  'series': 'Series',
+  'seriesPosition': 'Number in the series',
 };
 
 /// Fields carried by a `created` snapshot that merge like single changes.
 const _snapshotFields = [
   'title', 'authors', 'isbn13', 'publisher', 'publishedDate', 'format', 'purchasedOn', 'finishedOn', 'rating', 'notes',
-  'status', 'coverRef', 'genres',
+  'status', 'coverRef', 'genres', 'series', 'seriesPosition',
 ];
 
 class SyncService extends ChangeNotifier {

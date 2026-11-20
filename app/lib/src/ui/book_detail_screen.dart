@@ -186,6 +186,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Text(b.title, style: tt.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
                   if (b.authorLine.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(b.authorLine, style: tt.titleMedium?.copyWith(color: muted))),
+                  if (b.series != null) SeriesLine(series: b.series!),
                   const SizedBox(height: 12),
                   Chip(
                     avatar: Icon(formatIcon(b.format), size: 18),

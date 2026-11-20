@@ -17,7 +17,7 @@ String _date(DateTime? d) =>
     d == null ? '' : '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
 const exportHeaders = [
-  'Title', 'Authors', 'Format', 'Status', 'Rating', 'Date purchased', 'Date finished', 'Genres', 'Notes',
+  'Title', 'Authors', 'Series', 'Number in series', 'Format', 'Status', 'Rating', 'Date purchased', 'Date finished', 'Genres', 'Notes',
   'ISBN', 'Publisher', 'Published', 'Edition', 'Date added', 'Open Library work',
 ];
 
@@ -26,6 +26,8 @@ List<List<Object?>> exportRows(List<LibraryBook> books) => [
         [
           b.title,
           b.authors.join(', '),
+          b.row.series ?? '',
+          b.row.seriesPosition ?? '',
           b.format.label,
           b.status?.longLabel ?? '',
           b.row.rating,

@@ -182,6 +182,7 @@ Future<void> showOwnedSheet(BuildContext context, LibraryBook book) => showModal
                   const SizedBox(height: 8),
                   Text(book.title, style: Theme.of(c).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                   if (book.authorLine.isNotEmpty) Text(book.authorLine, style: Theme.of(c).textTheme.bodyLarge),
+                  if (book.series != null) SeriesLine(series: book.series!, small: true),
                   const SizedBox(height: 4),
                   Text('You own it: ${book.format.label}${book.status == null ? '' : ' · ${book.status!.label}'}',
                       style: Theme.of(c).textTheme.bodyMedium?.copyWith(color: Theme.of(c).colorScheme.onSurfaceVariant)),
@@ -213,12 +214,16 @@ Future<void> showOwnedSheet(BuildContext context, LibraryBook book) => showModal
 Future<void> showCandidateSheet(BuildContext context, Candidate c, {LibraryBook? owned, String? scannedIsbn}) async {
   if (owned != null) return showOwnedSheet(context, owned);
   if (scannedIsbn != null) c = c.forScannedCopy(scannedIsbn);
+  // A search result doesn't say which series it's in: the sheet asks while she looks at it.
+  final series = ValueNotifier<BookSeries?>(c.series);
   final result = await showModalBottomSheet<Object>(
     context: context,
     isScrollControlled: true,
-    builder: (_) => _CandidateSheet(candidate: c),
+    builder: (_) => _CandidateSheet(candidate: c, series: series),
   );
   if (!context.mounted) return;
+  c = c.withSeries(series.value);
+  series.dispose();
   if (result is OwnershipFormat) {
     final id = await AppScope.of(context).library.addFromCandidate(c, result);
     if (context.mounted) _showAdded(context, id, 'Added ${c.title}');
@@ -228,14 +233,36 @@ Future<void> showCandidateSheet(BuildContext context, Candidate c, {LibraryBook?
 }
 
 class _CandidateSheet extends StatefulWidget {
-  const _CandidateSheet({required this.candidate});
+  const _CandidateSheet({required this.candidate, required this.series});
   final Candidate candidate;
+
+  /// Filled in when the source answers which series it's in.
+  final ValueNotifier<BookSeries?> series;
   @override
   State<_CandidateSheet> createState() => _CandidateSheetState();
 }
 
 class _CandidateSheetState extends State<_CandidateSheet> {
   OwnershipFormat _format = OwnershipFormat.physical;
+
+  bool _asked = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_asked) return;
+    _asked = true;
+    if (widget.series.value == null) _askSeries();
+  }
+
+  Future<void> _askSeries() async {
+    try {
+      final s = await AppScope.of(context).lookup.seriesFor(widget.candidate.allIdentifiers);
+      if (mounted && s != null) setState(() => widget.series.value = s);
+    } catch (_) {
+      // Offline: it's filled in later, the next time the app opens online.
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -254,6 +281,7 @@ class _CandidateSheetState extends State<_CandidateSheet> {
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Text(c.title, style: tt.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
                 if (c.authorLine.isNotEmpty) Text(c.authorLine, style: tt.bodyLarge),
+                if (widget.series.value != null) SeriesLine(series: widget.series.value!, small: true),
                 if (details.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text(details, style: tt.bodyMedium?.copyWith(color: muted))),
                 if (c.isbn13 != null) Text('ISBN ${c.isbn13}', style: tt.bodySmall?.copyWith(color: muted)),
               ]),

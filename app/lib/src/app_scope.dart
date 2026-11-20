@@ -7,6 +7,7 @@ import 'account/account_service.dart';
 import 'account/passkey_recovery.dart';
 import 'backup/backup_service.dart';
 import 'books/library_repository.dart';
+import 'books/series_filler.dart';
 import 'covers/cover_store.dart';
 import 'settings/appearance.dart';
 import 'settings/view_settings.dart';
@@ -24,7 +25,9 @@ class AppServices {
     required this.account,
     required this.sync,
     PasskeyRecovery? passkeys,
-  }) : passkeys = passkeys ?? DevicePasskeys();
+    SeriesFiller? seriesFiller,
+  })  : passkeys = passkeys ?? DevicePasskeys(),
+        seriesFiller = seriesFiller ?? SeriesFiller(library: library, lookup: lookup);
   final LibraryRepository library;
   final BookLookup lookup;
   final CoverStore covers;
@@ -36,6 +39,9 @@ class AppServices {
 
   /// Passkey recovery (step 3c); tests use a stand-in.
   final PasskeyRecovery passkeys;
+
+  /// Fills in series for books that don't have one yet (runs quietly on opening the app).
+  final SeriesFiller seriesFiller;
 }
 
 class AppScope extends InheritedWidget {

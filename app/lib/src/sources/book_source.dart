@@ -23,6 +23,13 @@ abstract interface class BookSource {
   Uri? coverUri(String ref, CoverSize size);
 }
 
+/// A source that knows which series a book belongs to (Open Library links works to series records).
+abstract interface class SeriesSource {
+  /// The series of the book with these identifiers: null if the source doesn't know one (or the
+  /// identifiers aren't its own). Throws when the source can't be reached.
+  Future<BookSeries?> seriesFor(List<Identifier> identifiers);
+}
+
 /// Tries sources in order. Adding a source is a product decision (roadmap Q7).
 class BookLookup {
   BookLookup(this.sources);
@@ -32,6 +39,15 @@ class BookLookup {
     for (final s in sources) {
       final c = await s.lookupIsbn(isbn13);
       if (c != null) return c;
+    }
+    return null;
+  }
+
+  /// The series from the first source that knows it, or null. Throws when a source can't be reached.
+  Future<BookSeries?> seriesFor(List<Identifier> identifiers) async {
+    for (final s in sources.whereType<SeriesSource>()) {
+      final found = await s.seriesFor(identifiers);
+      if (found != null) return found;
     }
     return null;
   }

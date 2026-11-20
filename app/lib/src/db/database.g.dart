@@ -78,6 +78,26 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _seriesMeta = const VerificationMeta('series');
+  @override
+  late final GeneratedColumn<String> series = GeneratedColumn<String>(
+    'series',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _seriesPositionMeta = const VerificationMeta(
+    'seriesPosition',
+  );
+  @override
+  late final GeneratedColumn<String> seriesPosition = GeneratedColumn<String>(
+    'series_position',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _formatMeta = const VerificationMeta('format');
   @override
   late final GeneratedColumn<String> format = GeneratedColumn<String>(
@@ -193,6 +213,8 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
     publisher,
     publishedDate,
     edition,
+    series,
+    seriesPosition,
     format,
     purchasedOn,
     finishedOn,
@@ -254,6 +276,21 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
       context.handle(
         _editionMeta,
         edition.isAcceptableOrUnknown(data['edition']!, _editionMeta),
+      );
+    }
+    if (data.containsKey('series')) {
+      context.handle(
+        _seriesMeta,
+        series.isAcceptableOrUnknown(data['series']!, _seriesMeta),
+      );
+    }
+    if (data.containsKey('series_position')) {
+      context.handle(
+        _seriesPositionMeta,
+        seriesPosition.isAcceptableOrUnknown(
+          data['series_position']!,
+          _seriesPositionMeta,
+        ),
       );
     }
     if (data.containsKey('format')) {
@@ -364,6 +401,14 @@ class $BooksTable extends Books with TableInfo<$BooksTable, BookRow> {
         DriftSqlType.string,
         data['${effectivePrefix}edition'],
       ),
+      series: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}series'],
+      ),
+      seriesPosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}series_position'],
+      ),
       format: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}format'],
@@ -426,6 +471,11 @@ class BookRow extends DataClass implements Insertable<BookRow> {
   final String? publishedDate;
   final String? edition;
 
+  /// The series it belongs to and its place in it ("Dune", "3"), from Open Library or typed in
+  /// (added in schema 4). Books aren't grouped by series: it's shown with each book.
+  final String? series;
+  final String? seriesPosition;
+
   /// `physical` or `kindle` ([OwnershipFormat]).
   final String format;
   final DateTime? purchasedOn;
@@ -455,6 +505,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     this.publisher,
     this.publishedDate,
     this.edition,
+    this.series,
+    this.seriesPosition,
     required this.format,
     this.purchasedOn,
     this.finishedOn,
@@ -487,6 +539,12 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     }
     if (!nullToAbsent || edition != null) {
       map['edition'] = Variable<String>(edition);
+    }
+    if (!nullToAbsent || series != null) {
+      map['series'] = Variable<String>(series);
+    }
+    if (!nullToAbsent || seriesPosition != null) {
+      map['series_position'] = Variable<String>(seriesPosition);
     }
     map['format'] = Variable<String>(format);
     if (!nullToAbsent || purchasedOn != null) {
@@ -530,6 +588,12 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       edition: edition == null && nullToAbsent
           ? const Value.absent()
           : Value(edition),
+      series: series == null && nullToAbsent
+          ? const Value.absent()
+          : Value(series),
+      seriesPosition: seriesPosition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(seriesPosition),
       format: Value(format),
       purchasedOn: purchasedOn == null && nullToAbsent
           ? const Value.absent()
@@ -568,6 +632,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       publisher: serializer.fromJson<String?>(json['publisher']),
       publishedDate: serializer.fromJson<String?>(json['publishedDate']),
       edition: serializer.fromJson<String?>(json['edition']),
+      series: serializer.fromJson<String?>(json['series']),
+      seriesPosition: serializer.fromJson<String?>(json['seriesPosition']),
       format: serializer.fromJson<String>(json['format']),
       purchasedOn: serializer.fromJson<DateTime?>(json['purchasedOn']),
       finishedOn: serializer.fromJson<DateTime?>(json['finishedOn']),
@@ -591,6 +657,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
       'publisher': serializer.toJson<String?>(publisher),
       'publishedDate': serializer.toJson<String?>(publishedDate),
       'edition': serializer.toJson<String?>(edition),
+      'series': serializer.toJson<String?>(series),
+      'seriesPosition': serializer.toJson<String?>(seriesPosition),
       'format': serializer.toJson<String>(format),
       'purchasedOn': serializer.toJson<DateTime?>(purchasedOn),
       'finishedOn': serializer.toJson<DateTime?>(finishedOn),
@@ -612,6 +680,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     Value<String?> publisher = const Value.absent(),
     Value<String?> publishedDate = const Value.absent(),
     Value<String?> edition = const Value.absent(),
+    Value<String?> series = const Value.absent(),
+    Value<String?> seriesPosition = const Value.absent(),
     String? format,
     Value<DateTime?> purchasedOn = const Value.absent(),
     Value<DateTime?> finishedOn = const Value.absent(),
@@ -632,6 +702,10 @@ class BookRow extends DataClass implements Insertable<BookRow> {
         ? publishedDate.value
         : this.publishedDate,
     edition: edition.present ? edition.value : this.edition,
+    series: series.present ? series.value : this.series,
+    seriesPosition: seriesPosition.present
+        ? seriesPosition.value
+        : this.seriesPosition,
     format: format ?? this.format,
     purchasedOn: purchasedOn.present ? purchasedOn.value : this.purchasedOn,
     finishedOn: finishedOn.present ? finishedOn.value : this.finishedOn,
@@ -654,6 +728,10 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           ? data.publishedDate.value
           : this.publishedDate,
       edition: data.edition.present ? data.edition.value : this.edition,
+      series: data.series.present ? data.series.value : this.series,
+      seriesPosition: data.seriesPosition.present
+          ? data.seriesPosition.value
+          : this.seriesPosition,
       format: data.format.present ? data.format.value : this.format,
       purchasedOn: data.purchasedOn.present
           ? data.purchasedOn.value
@@ -681,6 +759,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           ..write('publisher: $publisher, ')
           ..write('publishedDate: $publishedDate, ')
           ..write('edition: $edition, ')
+          ..write('series: $series, ')
+          ..write('seriesPosition: $seriesPosition, ')
           ..write('format: $format, ')
           ..write('purchasedOn: $purchasedOn, ')
           ..write('finishedOn: $finishedOn, ')
@@ -704,6 +784,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
     publisher,
     publishedDate,
     edition,
+    series,
+    seriesPosition,
     format,
     purchasedOn,
     finishedOn,
@@ -726,6 +808,8 @@ class BookRow extends DataClass implements Insertable<BookRow> {
           other.publisher == this.publisher &&
           other.publishedDate == this.publishedDate &&
           other.edition == this.edition &&
+          other.series == this.series &&
+          other.seriesPosition == this.seriesPosition &&
           other.format == this.format &&
           other.purchasedOn == this.purchasedOn &&
           other.finishedOn == this.finishedOn &&
@@ -746,6 +830,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
   final Value<String?> publisher;
   final Value<String?> publishedDate;
   final Value<String?> edition;
+  final Value<String?> series;
+  final Value<String?> seriesPosition;
   final Value<String> format;
   final Value<DateTime?> purchasedOn;
   final Value<DateTime?> finishedOn;
@@ -765,6 +851,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     this.publisher = const Value.absent(),
     this.publishedDate = const Value.absent(),
     this.edition = const Value.absent(),
+    this.series = const Value.absent(),
+    this.seriesPosition = const Value.absent(),
     this.format = const Value.absent(),
     this.purchasedOn = const Value.absent(),
     this.finishedOn = const Value.absent(),
@@ -785,6 +873,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     this.publisher = const Value.absent(),
     this.publishedDate = const Value.absent(),
     this.edition = const Value.absent(),
+    this.series = const Value.absent(),
+    this.seriesPosition = const Value.absent(),
     required String format,
     this.purchasedOn = const Value.absent(),
     this.finishedOn = const Value.absent(),
@@ -809,6 +899,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     Expression<String>? publisher,
     Expression<String>? publishedDate,
     Expression<String>? edition,
+    Expression<String>? series,
+    Expression<String>? seriesPosition,
     Expression<String>? format,
     Expression<DateTime>? purchasedOn,
     Expression<DateTime>? finishedOn,
@@ -829,6 +921,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
       if (publisher != null) 'publisher': publisher,
       if (publishedDate != null) 'published_date': publishedDate,
       if (edition != null) 'edition': edition,
+      if (series != null) 'series': series,
+      if (seriesPosition != null) 'series_position': seriesPosition,
       if (format != null) 'format': format,
       if (purchasedOn != null) 'purchased_on': purchasedOn,
       if (finishedOn != null) 'finished_on': finishedOn,
@@ -851,6 +945,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     Value<String?>? publisher,
     Value<String?>? publishedDate,
     Value<String?>? edition,
+    Value<String?>? series,
+    Value<String?>? seriesPosition,
     Value<String>? format,
     Value<DateTime?>? purchasedOn,
     Value<DateTime?>? finishedOn,
@@ -871,6 +967,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
       publisher: publisher ?? this.publisher,
       publishedDate: publishedDate ?? this.publishedDate,
       edition: edition ?? this.edition,
+      series: series ?? this.series,
+      seriesPosition: seriesPosition ?? this.seriesPosition,
       format: format ?? this.format,
       purchasedOn: purchasedOn ?? this.purchasedOn,
       finishedOn: finishedOn ?? this.finishedOn,
@@ -910,6 +1008,12 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
     }
     if (edition.present) {
       map['edition'] = Variable<String>(edition.value);
+    }
+    if (series.present) {
+      map['series'] = Variable<String>(series.value);
+    }
+    if (seriesPosition.present) {
+      map['series_position'] = Variable<String>(seriesPosition.value);
     }
     if (format.present) {
       map['format'] = Variable<String>(format.value);
@@ -957,6 +1061,8 @@ class BooksCompanion extends UpdateCompanion<BookRow> {
           ..write('publisher: $publisher, ')
           ..write('publishedDate: $publishedDate, ')
           ..write('edition: $edition, ')
+          ..write('series: $series, ')
+          ..write('seriesPosition: $seriesPosition, ')
           ..write('format: $format, ')
           ..write('purchasedOn: $purchasedOn, ')
           ..write('finishedOn: $finishedOn, ')
@@ -2867,6 +2973,8 @@ typedef $$BooksTableCreateCompanionBuilder = BooksCompanion Function({
   Value<String?> publisher,
   Value<String?> publishedDate,
   Value<String?> edition,
+  Value<String?> series,
+  Value<String?> seriesPosition,
   required String format,
   Value<DateTime?> purchasedOn,
   Value<DateTime?> finishedOn,
@@ -2887,6 +2995,8 @@ typedef $$BooksTableUpdateCompanionBuilder = BooksCompanion Function({
   Value<String?> publisher,
   Value<String?> publishedDate,
   Value<String?> edition,
+  Value<String?> series,
+  Value<String?> seriesPosition,
   Value<String> format,
   Value<DateTime?> purchasedOn,
   Value<DateTime?> finishedOn,
@@ -2984,6 +3094,16 @@ class $$BooksTableFilterComposer extends Composer<_$AppDatabase, $BooksTable> {
 
   ColumnFilters<String> get edition => $composableBuilder(
     column: $table.edition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get series => $composableBuilder(
+    column: $table.series,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get seriesPosition => $composableBuilder(
+    column: $table.seriesPosition,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3132,6 +3252,16 @@ class $$BooksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get series => $composableBuilder(
+    column: $table.series,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get seriesPosition => $composableBuilder(
+    column: $table.seriesPosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get format => $composableBuilder(
     column: $table.format,
     builder: (column) => ColumnOrderings(column),
@@ -3214,6 +3344,14 @@ class $$BooksTableAnnotationComposer
 
   GeneratedColumn<String> get edition =>
       $composableBuilder(column: $table.edition, builder: (column) => column);
+
+  GeneratedColumn<String> get series =>
+      $composableBuilder(column: $table.series, builder: (column) => column);
+
+  GeneratedColumn<String> get seriesPosition => $composableBuilder(
+    column: $table.seriesPosition,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get format =>
       $composableBuilder(column: $table.format, builder: (column) => column);
@@ -3338,6 +3476,8 @@ class $$BooksTableTableManager
                 Value<String?> publisher = const Value.absent(),
                 Value<String?> publishedDate = const Value.absent(),
                 Value<String?> edition = const Value.absent(),
+                Value<String?> series = const Value.absent(),
+                Value<String?> seriesPosition = const Value.absent(),
                 Value<String> format = const Value.absent(),
                 Value<DateTime?> purchasedOn = const Value.absent(),
                 Value<DateTime?> finishedOn = const Value.absent(),
@@ -3357,6 +3497,8 @@ class $$BooksTableTableManager
                 publisher: publisher,
                 publishedDate: publishedDate,
                 edition: edition,
+                series: series,
+                seriesPosition: seriesPosition,
                 format: format,
                 purchasedOn: purchasedOn,
                 finishedOn: finishedOn,
@@ -3378,6 +3520,8 @@ class $$BooksTableTableManager
                 Value<String?> publisher = const Value.absent(),
                 Value<String?> publishedDate = const Value.absent(),
                 Value<String?> edition = const Value.absent(),
+                Value<String?> series = const Value.absent(),
+                Value<String?> seriesPosition = const Value.absent(),
                 required String format,
                 Value<DateTime?> purchasedOn = const Value.absent(),
                 Value<DateTime?> finishedOn = const Value.absent(),
@@ -3397,6 +3541,8 @@ class $$BooksTableTableManager
                 publisher: publisher,
                 publishedDate: publishedDate,
                 edition: edition,
+                series: series,
+                seriesPosition: seriesPosition,
                 format: format,
                 purchasedOn: purchasedOn,
                 finishedOn: finishedOn,

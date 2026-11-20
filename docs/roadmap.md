@@ -32,6 +32,10 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   reading status (TBR, Reading, Read, DNF), then rating, genre and author. The button shows how many
   are chosen. No chips under the search bar (her choice, 2026-11-15; built in 0.5.3).
   Searching always covers the whole library, whatever the filters, so the owned check never misses a book.
+- A book in a series shows which one and its place in it ("Dune · Book 3") under its cover, on its
+  page and when it's found by a scan or search. Series aren't grouped: each book stays its own entry.
+  It comes from Open Library when it knows (most well-known series), and can be typed in or changed
+  when editing a book (her request, 2026-11-21).
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon. Each status has its own colour and icon beside its word, so they're
   told apart at a glance: TBR slate blue with a bookmark, Reading amber with an open book, Read green
@@ -490,3 +494,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-21 | A scan (or typed ISBN) Open Library doesn't know steers to searching by title or author, not to entering it by hand; a search that finds nothing offers entering it by hand. Built in 0.5.4 | product owner |
 | 2026-11-21 | An edition added from that search is saved with the ISBN she scanned (as its ISBN, and kept with the edition's own), so the next scan of that copy shows ALREADY OWNED | recommendation, to confirm |
 | 2026-11-21 | Status bubbles on covers each get their own colour and icon, keeping the word (her examples: Read with a tick, TBR another colour or icon). Colours chosen to read at 4.5:1 or better in light and dark; built in 0.5.5, open to her adjustments | product owner |
+| 2026-11-21 | Series shown, not grouped: "Dune · Book 3" under the cover, on the book's page and on the scan/search sheet; editable by hand. From Open Library's series records (works link to a series and a position); the editions' free-text series is ignored. Books already in the library get theirs filled in once, quietly. Built in 0.6.0 (schema 4) | product owner (where to show it); Mystery (asked) |

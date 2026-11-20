@@ -152,6 +152,9 @@ void main() {
       var db = AppDatabase(NativeDatabase(file));
       await LibraryRepository(db).addManual(title: 'Carrie', authors: ['Stephen King'], format: OwnershipFormat.physical);
       await db.customStatement('ALTER TABLE books DROP COLUMN finished_on');
+      for (final c in ['series', 'series_position']) {
+        await db.customStatement('ALTER TABLE books DROP COLUMN $c');
+      }
       for (final c in ['hlc', 'device', 'pushed']) {
         await db.customStatement('ALTER TABLE change_log DROP COLUMN $c');
       }
@@ -167,6 +170,27 @@ void main() {
       expect(books.single.title, 'Carrie');
       await repo.update(books.single.id, BookChanges(finishedOn: DateTime(2026, 11, 14)));
       expect((await repo.getBook(books.single.id))!.row.finishedOn, DateTime(2026, 11, 14));
+      await db.close();
+    });
+
+    test('a library from 0.5 (schema 3) upgrades, keeps its books and can hold a series', () async {
+      final dir = await Directory.systemTemp.createTemp('upgrade3');
+      addTearDown(() => dir.delete(recursive: true));
+      final file = File('${dir.path}/library.sqlite');
+      var db = AppDatabase(NativeDatabase(file));
+      await LibraryRepository(db).addManual(title: 'Children of Dune', authors: ['Frank Herbert'], format: OwnershipFormat.physical);
+      for (final c in ['series', 'series_position']) {
+        await db.customStatement('ALTER TABLE books DROP COLUMN $c');
+      }
+      await db.customStatement('PRAGMA user_version = 3');
+      await db.close();
+
+      db = AppDatabase(NativeDatabase(file));
+      final repo = LibraryRepository(db);
+      final b = (await repo.allBooks()).single;
+      expect((b.title, b.series), ('Children of Dune', null));
+      await repo.update(b.id, const BookChanges(series: 'Dune', seriesPosition: '3'));
+      expect((await repo.getBook(b.id))!.series, const BookSeries('Dune', '3'));
       await db.close();
     });
   });

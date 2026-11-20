@@ -28,6 +28,11 @@ class Books extends Table {
   TextColumn get publishedDate => text().nullable()();
   TextColumn get edition => text().nullable()();
 
+  /// The series it belongs to and its place in it ("Dune", "3"), from Open Library or typed in
+  /// (added in schema 4). Books aren't grouped by series: it's shown with each book.
+  TextColumn get series => text().nullable()();
+  TextColumn get seriesPosition => text().nullable()();
+
   /// `physical` or `kindle` ([OwnershipFormat]).
   TextColumn get format => text()();
   DateTimeColumn get purchasedOn => dateTime().nullable()();
@@ -132,7 +137,7 @@ class AppDatabase extends _$AppDatabase {
             ));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -151,6 +156,10 @@ class AppDatabase extends _$AppDatabase {
             await m.createTable(syncConflicts);
             // History from before sync never needs sending.
             await customStatement('UPDATE change_log SET pushed = 1');
+          }
+          if (from < 4) {
+            await m.addColumn(books, books.series);
+            await m.addColumn(books, books.seriesPosition);
           }
         },
         beforeOpen: (details) async => customStatement('PRAGMA foreign_keys = ON'),

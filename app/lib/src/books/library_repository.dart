@@ -30,6 +30,7 @@ class LibraryBook {
   OwnershipFormat get format => OwnershipFormat.parse(row.format);
   ReadingStatus? get status => ReadingStatus.parse(row.status);
   bool get hasOwnCover => row.ownCover;
+  BookSeries? get series => (row.series ?? '').trim().isEmpty ? null : BookSeries(row.series!.trim(), row.seriesPosition);
 }
 
 /// The fields a person can set on a book. Null means "leave as it is" unless listed in [clear].
@@ -48,6 +49,8 @@ class BookChanges {
     this.status,
     this.coverRef,
     this.ownCover,
+    this.series,
+    this.seriesPosition,
     this.clear = const {},
   });
   final String? title;
@@ -63,9 +66,11 @@ class BookChanges {
   final ReadingStatus? status;
   final String? coverRef;
   final bool? ownCover;
+  final String? series;
+  final String? seriesPosition;
 
   /// Field names to set back to empty: `isbn13`, `publisher`, `publishedDate`, `purchasedOn`, `finishedOn`,
-  /// `rating`, `notes`, `status`, `coverRef`.
+  /// `rating`, `notes`, `status`, `coverRef`, `series`, `seriesPosition`.
   final Set<String> clear;
 }
 
@@ -130,7 +135,7 @@ class LibraryRepository {
         if ((b.row.isbn13 ?? '').contains(digits)) return true;
         if (b.identifiers.any((i) => i.scheme == Schemes.isbn13 && i.value.contains(digits))) return true;
       }
-      final hay = normaliseForMatch('${b.title} ${b.authors.join(' ')}');
+      final hay = normaliseForMatch('${b.title} ${b.authors.join(' ')} ${b.row.series ?? ''}');
       return words.every(hay.contains);
     }).toList();
   }
@@ -255,6 +260,8 @@ class LibraryRepository {
           'notes' => BooksCompanion(notes: Value(v as String?)),
           'status' => BooksCompanion(status: Value(v as String?)),
           'coverRef' => BooksCompanion(coverRef: Value(v as String?)),
+          'series' => BooksCompanion(series: Value(v as String?)),
+          'seriesPosition' => BooksCompanion(seriesPosition: Value(v as String?)),
           'photo' => BooksCompanion(ownCover: Value(v != null)),
           _ => null,
         };
@@ -288,6 +295,7 @@ class LibraryRepository {
         coverRef: c.coverRef == null ? null : '${c.sourceId}:${c.coverRef}',
         identifiers: c.allIdentifiers,
         genres: genresFromSubjects(c.subjects),
+        series: c.series,
       );
 
   /// Add a book typed in by hand.
@@ -298,6 +306,7 @@ class LibraryRepository {
     String? publisher,
     String? publishedDate,
     required OwnershipFormat format,
+    BookSeries? series,
   }) =>
       _insert(
         title: title,
@@ -307,6 +316,7 @@ class LibraryRepository {
         publishedDate: publishedDate,
         format: format,
         identifiers: [if (isbn13 != null) Identifier(Schemes.isbn13, isbn13)],
+        series: series,
       );
 
   Future<String> _insert({
@@ -320,6 +330,7 @@ class LibraryRepository {
     String? coverRef,
     List<Identifier> identifiers = const [],
     List<String> genres = const [],
+    BookSeries? series,
   }) async {
     final id = _uuid.v4();
     final now = _clock();
@@ -332,6 +343,8 @@ class LibraryRepository {
             publisher: Value(publisher),
             publishedDate: Value(publishedDate),
             edition: Value(edition),
+            series: Value(series?.name.trim()),
+            seriesPosition: Value(series?.position?.trim()),
             format: format.name,
             coverRef: Value(coverRef),
             addedAt: now,
@@ -367,6 +380,8 @@ class LibraryRepository {
       if (c.status != null) 'status': c.status!.name,
       if (c.coverRef != null) 'coverRef': c.coverRef,
       if (c.ownCover != null) 'ownCover': c.ownCover,
+      if (c.series != null) 'series': c.series!.trim(),
+      if (c.seriesPosition != null) 'seriesPosition': c.seriesPosition!.trim(),
       for (final f in c.clear) f: null,
     };
     if (values.isEmpty) return;
@@ -385,6 +400,8 @@ class LibraryRepository {
             notes: v('notes', (o) => o as String?),
             status: v('status', (o) => o as String?),
             coverRef: v('coverRef', (o) => o as String?),
+            series: v('series', (o) => o as String?),
+            seriesPosition: v('seriesPosition', (o) => o as String?),
             ownCover: values['ownCover'] == null ? const Value.absent() : Value(values['ownCover']! as bool),
             updatedAt: Value(_clock()),
           ));

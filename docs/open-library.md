@@ -31,6 +31,7 @@ the app's only book source (a product rule); this note covers how to use it poli
 | A work's editions | `GET /works/<OL…W>/editions.json` | For showing formats; not needed for the owned check |
 | Cover image | `https://covers.openlibrary.org/b/id/<cover_id>-S/M/L.jpg` | `?default=false` gives 404 instead of a blank image when there's none |
 | Author name | `GET /authors/<OL…A>.json` | Editions list authors by key, not name |
+| A book's series | `GET /works/<OL…W>.json`, then `GET /series/<OL…L>.json` | The work's `series` is a list of `{series: {key}, position}` (Open Library's series records, added in 2026); the series record gives its `name`. Checked 2026-11-21: Dune is position 1 of "Dune", Children of Dune position 3. Covered for most well-known series (8 of 10 tried, not The Hunger Games). Each series name is fetched once per run. The free-text `series` on editions is ignored: it mixes publishers' imprints ("Ace Science Fiction, 17620"), translations and odd numbering |
 
 ## What the data looks like (tested with The Night Circus)
 - The ISBN lookup returned the edition with title, work key, publishers, date, format ("Hardcover")

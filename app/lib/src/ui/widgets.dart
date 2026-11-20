@@ -26,10 +26,13 @@ class PlaceholderCover extends StatelessWidget {
       // Room at the bottom for the status and format bubbles laid over grid covers.
       padding: compact ? const EdgeInsets.all(6) : const EdgeInsets.fromLTRB(10, 10, 10, 36),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Text(title,
-            maxLines: compact ? 4 : 5,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: fg, fontFamily: 'serif', fontWeight: FontWeight.w600, fontSize: compact ? 10 : 14, height: 1.25)),
+        // Flexible: with large text, a long title is cut off at the bottom instead of overflowing.
+        Flexible(
+          child: Text(title,
+              maxLines: compact ? 4 : 5,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: fg, fontFamily: 'serif', fontWeight: FontWeight.w600, fontSize: compact ? 10 : 14, height: 1.25)),
+        ),
         if (!compact && author.isNotEmpty)
           Text(author.toUpperCase(), maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: fg, fontSize: 9.5, letterSpacing: 0.5)),
       ]),
@@ -142,13 +145,38 @@ class StatusBubble extends StatelessWidget {
           boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 1))],
         ),
         child: ExcludeSemantics(
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(statusIcon(status), size: 14, color: c.on),
-            const SizedBox(width: 3),
-            Text(status.label, style: TextStyle(color: c.on, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
-          ]),
+          // On a narrow cover, or with large text, it shrinks to fit rather than spilling over.
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
+              Icon(statusIcon(status), size: 14, color: c.on),
+              const SizedBox(width: 3),
+              Text(status.label, style: TextStyle(color: c.on, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+            ]),
+          ),
         ),
       ),
+    );
+  }
+}
+
+/// The series a book belongs to and its place in it ("Dune · Book 3"), under the author.
+class SeriesLine extends StatelessWidget {
+  const SeriesLine({super.key, required this.series, this.small = false});
+  final BookSeries series;
+  final bool small;
+
+  @override
+  Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final style = (small ? Theme.of(context).textTheme.bodyMedium : Theme.of(context).textTheme.bodyLarge)?.copyWith(color: muted);
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Row(children: [
+        Icon(Icons.collections_bookmark_outlined, size: small ? 16 : 18, color: muted),
+        const SizedBox(width: 6),
+        Expanded(child: Text(series.label, style: style, maxLines: 2, overflow: TextOverflow.ellipsis)),
+      ]),
     );
   }
 }

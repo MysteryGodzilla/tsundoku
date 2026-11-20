@@ -69,21 +69,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-        child: Row(children: [
-          PopupMenuButton<SortOrder>(
-            tooltip: 'Sort',
-            initialValue: order,
-            onSelected: view.setSortOrder,
-            itemBuilder: (_) => [for (final o in SortOrder.values) PopupMenuItem(value: o, child: Text(o.label))],
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                Text(order.label, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
-                Icon(Icons.expand_more, size: 18, color: cs.onSurfaceVariant),
-              ]),
+        // Sort on the left, Filters on the right.
+        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Flexible(
+            child: PopupMenuButton<SortOrder>(
+              tooltip: 'Sort',
+              initialValue: order,
+              onSelected: view.setSortOrder,
+              itemBuilder: (_) => [for (final o in SortOrder.values) PopupMenuItem(value: o, child: Text(o.label))],
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Flexible(
+                    child: Text(order.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: cs.onSurfaceVariant, fontSize: 14)),
+                  ),
+                  Icon(Icons.expand_more, size: 18, color: cs.onSurfaceVariant),
+                ]),
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           TextButton.icon(
             onPressed: () async {
               final f = await showFiltersSheet(context, books, _filter);
@@ -198,17 +203,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 else
                   SliverPadding(
                     padding: EdgeInsets.fromLTRB(20, 4, 20, 100 + MediaQuery.paddingOf(context).bottom),
-                    sliver: SliverGrid(
-                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                        maxCrossAxisExtent: 140,
-                        mainAxisSpacing: 18,
-                        crossAxisSpacing: 14,
-                        childAspectRatio: 0.52,
-                      ),
-                      delegate: SliverChildBuilderDelegate(
-                        childCount: shown.length,
-                        (context, i) => _GridBook(book: shown[i], onTap: () => _open(shown[i])),
-                      ),
+                    sliver: SliverLayoutBuilder(
+                      builder: (context, constraints) {
+                        // Columns at most 140 wide, as before. Each card is the cover (2:3) plus
+                        // three lines: title, author and series (her request, 2026-11-21), measured
+                        // with the phone's own text size so large text never spills out.
+                        const maxWidth = 140.0, spacing = 14.0;
+                        final width = constraints.crossAxisExtent;
+                        final columns = (width / (maxWidth + spacing)).ceil().clamp(1, 12);
+                        final cell = (width - spacing * (columns - 1)) / columns;
+                        final ts = MediaQuery.textScalerOf(context);
+                        final lines = ts.scale(13) * 1.45 + 2 * ts.scale(12) * 1.45;
+                        return SliverGrid(
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: columns,
+                            mainAxisSpacing: 18,
+                            crossAxisSpacing: spacing,
+                            mainAxisExtent: cell * 1.5 + 6 + lines,
+                          ),
+                          delegate: SliverChildBuilderDelegate(
+                            childCount: shown.length,
+                            (context, i) => _GridBook(book: shown[i], onTap: () => _open(shown[i])),
+                          ),
+                        );
+                      },
                     ),
                   ),
               ],
@@ -314,7 +332,7 @@ class _GridBook extends StatelessWidget {
             right: 6,
             bottom: 6,
             child: Row(children: [
-              if (book.status != null) StatusBubble(status: book.status!),
+              if (book.status != null) Flexible(child: StatusBubble(status: book.status!)),
               const Spacer(),
               CoverBubble(icon: formatIcon(book.format), semanticLabel: book.format.label),
             ]),
@@ -323,6 +341,8 @@ class _GridBook extends StatelessWidget {
         const SizedBox(height: 6),
         Text(book.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
         Text(book.authorLine, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: muted)),
+        if (book.series != null)
+          Text(book.series!.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: muted, fontStyle: FontStyle.italic)),
       ]),
     );
   }
