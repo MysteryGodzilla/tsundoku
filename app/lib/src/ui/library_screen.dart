@@ -331,9 +331,11 @@ class _GridBook extends StatelessWidget {
             left: 6,
             right: 6,
             bottom: 6,
-            child: Row(children: [
-              if (book.status != null) Flexible(child: StatusBubble(status: book.status!)),
-              const Spacer(),
+            // The status bubble is the only flexible child, so it keeps its full size whenever it
+            // fits and only shrinks on a narrow cover (a Spacer here would halve its room).
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              if (book.status != null) Flexible(child: StatusBubble(status: book.status!)) else const SizedBox.shrink(),
+              const SizedBox(width: 4),
               CoverBubble(icon: formatIcon(book.format), semanticLabel: book.format.label),
             ]),
           ),

@@ -135,10 +135,10 @@ class StatusBubble extends StatelessWidget {
     final c = statusColours(status, Theme.of(context).brightness);
     return Semantics(
       label: status.longLabel,
+      // No alignment here: with one, the pill would stretch to fill all the room it's given.
       child: Container(
         height: 24,
         padding: const EdgeInsets.only(left: 6, right: 9),
-        alignment: Alignment.center,
         decoration: BoxDecoration(
           color: c.fill,
           borderRadius: BorderRadius.circular(12),

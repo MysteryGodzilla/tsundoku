@@ -25,6 +25,7 @@ import 'package:tsundoku/src/sources/book_source.dart';
 import 'package:tsundoku/src/sources/open_library_source.dart';
 import 'package:tsundoku/src/sync/sync_service.dart';
 import 'package:tsundoku/src/ui/add_flow.dart';
+import 'package:tsundoku/src/ui/widgets.dart';
 import 'package:tsundoku_protocol/tsundoku_protocol.dart';
 import 'package:tsundoku_server/tsundoku_server.dart';
 
@@ -247,6 +248,30 @@ void main() {
     await _settle(tester);
     expect(find.text('The Dune Chronicles of Arrakis · Book 3'), findsOneWidget);
     expect(tester.takeException(), isNull, reason: 'no overflow');
+
+    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(db.close);
+    tmp.deleteSync(recursive: true);
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  testWidgets('on a normal phone the status bubble keeps its full size on the cover (0.6.0 had shrunk it)', (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    tester.view.physicalSize = const Size(1236, 2676); // A phone 412 wide at 3x.
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final db = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+    final tmp = Directory.systemTemp.createTempSync('bubble_size');
+    final services = (await tester.runAsync(() => _services(db, BookLookup(const []), tmp)))!;
+    await tester.runAsync(() async {
+      final id = await services.library.addManual(title: 'Carrie', authors: ['Stephen King'], format: OwnershipFormat.physical);
+      await services.library.update(id, const BookChanges(status: ReadingStatus.tbr));
+    });
+    await tester.pumpWidget(TsundokuApp(services: services));
+    await _settle(tester);
+    final onCover = tester.getSize(find.byType(StatusBubble));
+
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: Center(child: StatusBubble(status: ReadingStatus.tbr)))));
+    expect(onCover, tester.getSize(find.byType(StatusBubble)), reason: 'the same size as one drawn on its own');
 
     await tester.pumpWidget(const SizedBox());
     await tester.runAsync(db.close);
