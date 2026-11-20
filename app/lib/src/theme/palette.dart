@@ -4,6 +4,8 @@ library;
 
 import 'package:flutter/widgets.dart' show Brightness, Color;
 
+import '../books/models.dart' show ReadingStatus;
+
 enum Accent {
   sage('Sage'),
   dustyBlue('Dusty blue'),
@@ -102,3 +104,25 @@ const placeholderCovers = <(Color bg, Color fg)>[
   (Color(0xFFB5838D), Color(0xFF2A1519)),
   (Color(0xFFD4A373), Color(0xFF2B1D0E)),
 ];
+
+/// A reading status's bubble on a cover: its own colour, the same whatever the accent, so the four
+/// are told apart at a glance (her request, 2026-11-21). Text and icon on it are at least 4.5:1.
+class StatusColours {
+  const StatusColours(this.fill, this.on);
+  final Color fill;
+  final Color on;
+}
+
+StatusColours statusColours(ReadingStatus s, Brightness b) {
+  final dark = b == Brightness.dark;
+  return switch (s) {
+    // To be read: a quiet slate blue.
+    ReadingStatus.tbr => dark ? const StatusColours(Color(0xFFB4C3D6), Color(0xFF16202C)) : const StatusColours(Color(0xFF56677D), Color(0xFFFFFFFF)),
+    // Reading: warm amber.
+    ReadingStatus.reading => dark ? const StatusColours(Color(0xFFF0C27A), Color(0xFF2B1B03)) : const StatusColours(Color(0xFF8E5B0C), Color(0xFFFFFFFF)),
+    // Read: green, with a tick.
+    ReadingStatus.read => dark ? const StatusColours(Color(0xFF98D1A6), Color(0xFF0F2617)) : const StatusColours(Color(0xFF3B7A4C), Color(0xFFFFFFFF)),
+    // Did not finish: a muted rose red.
+    ReadingStatus.dnf => dark ? const StatusColours(Color(0xFFEBA3B1), Color(0xFF2E1018)) : const StatusColours(Color(0xFFA2465A), Color(0xFFFFFFFF)),
+  };
+}

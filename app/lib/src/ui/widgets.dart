@@ -113,7 +113,47 @@ class CandidateCover extends StatelessWidget {
 
 IconData formatIcon(OwnershipFormat f) => f == OwnershipFormat.kindle ? Icons.tablet_android_outlined : Icons.menu_book_outlined;
 
-/// A small pill laid over a cover: a reading status, or the Kindle/Physical icon.
+/// Each reading status's own icon, beside its word in the cover bubble (her request, 2026-11-21).
+IconData statusIcon(ReadingStatus s) => switch (s) {
+      ReadingStatus.tbr => Icons.bookmark_border,
+      ReadingStatus.reading => Icons.auto_stories_outlined,
+      ReadingStatus.read => Icons.check_rounded,
+      ReadingStatus.dnf => Icons.block,
+    };
+
+/// A reading status on a cover: its own colour and icon, with the word, so TBR, Reading, Read and
+/// DNF are told apart at a glance.
+class StatusBubble extends StatelessWidget {
+  const StatusBubble({super.key, required this.status});
+  final ReadingStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = statusColours(status, Theme.of(context).brightness);
+    return Semantics(
+      label: status.longLabel,
+      child: Container(
+        height: 24,
+        padding: const EdgeInsets.only(left: 6, right: 9),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: c.fill,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 4, offset: Offset(0, 1))],
+        ),
+        child: ExcludeSemantics(
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            Icon(statusIcon(status), size: 14, color: c.on),
+            const SizedBox(width: 3),
+            Text(status.label, style: TextStyle(color: c.on, fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+/// A small pill laid over a cover: the Kindle/Physical icon (statuses use [StatusBubble]).
 class CoverBubble extends StatelessWidget {
   const CoverBubble({super.key, this.label, this.icon, this.semanticLabel});
   final String? label;

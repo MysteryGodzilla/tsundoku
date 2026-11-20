@@ -307,13 +307,14 @@ class _GridBook extends StatelessWidget {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Stack(children: [
           BookCover(book: book),
-          // Her request (2026-11-14): status in a little bubble when set, and Kindle/Physical.
+          // Her requests: status in a little bubble when set, and Kindle/Physical (2026-11-14);
+          // each status its own colour and icon (2026-11-21).
           Positioned(
             left: 6,
             right: 6,
             bottom: 6,
             child: Row(children: [
-              if (book.status != null) CoverBubble(label: book.status!.label),
+              if (book.status != null) StatusBubble(status: book.status!),
               const Spacer(),
               CoverBubble(icon: formatIcon(book.format), semanticLabel: book.format.label),
             ]),

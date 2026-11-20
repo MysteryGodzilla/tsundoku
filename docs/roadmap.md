@@ -33,7 +33,9 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   are chosen. No chips under the search bar (her choice, 2026-11-15; built in 0.5.3).
   Searching always covers the whole library, whatever the filters, so the owned check never misses a book.
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
-  small Kindle or Physical icon.
+  small Kindle or Physical icon. Each status has its own colour and icon beside its word, so they're
+  told apart at a glance: TBR slate blue with a bookmark, Reading amber with an open book, Read green
+  with a tick, DNF rose with a "no" sign (her choice, 2026-11-21; the same in every accent).
 - Settings has a simple appearance picker: one of **five accent colours** (Sage, Dusty blue, Blush,
   Heather, Sunflower) and **Light or Dark**. Nothing more (no custom colours, fonts or themes). Book covers are the
   star, in a grid. No bookshelf graphics, no heavy animation, nothing that looks like social media.
@@ -487,3 +489,4 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-15 | The filters change goes in now (0.5.3), not at the end of Phase 3: it's what she sees first | Mystery |
 | 2026-11-21 | A scan (or typed ISBN) Open Library doesn't know steers to searching by title or author, not to entering it by hand; a search that finds nothing offers entering it by hand. Built in 0.5.4 | product owner |
 | 2026-11-21 | An edition added from that search is saved with the ISBN she scanned (as its ISBN, and kept with the edition's own), so the next scan of that copy shows ALREADY OWNED | recommendation, to confirm |
+| 2026-11-21 | Status bubbles on covers each get their own colour and icon, keeping the word (her examples: Read with a tick, TBR another colour or icon). Colours chosen to read at 4.5:1 or better in light and dark; built in 0.5.5, open to her adjustments | product owner |
