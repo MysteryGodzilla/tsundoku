@@ -37,9 +37,14 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   It comes from Open Library when it knows (most well-known series), and can be typed in or changed
   when editing a book (her request, 2026-11-21).
 - **Library stats** (Settings › Library stats): for all books, Physical only or Kindle only, how many
-  books, how many in each reading status, and how many were bought and finished (books marked Read,
-  by the date finished) in the last 30 days, 90 days and 12 months. Books with no date aren't counted
-  in those, and it says so. Private: nothing is shared or compared (her request, 2026-11-21).
+  books, how many in each reading status, and how many were finished (books marked Read, by the date
+  finished) and bought in the last 30 days, 90 days and 12 months, finished first. Books with no date
+  aren't counted in those, and it says so. Then the fun ones: pace (average days between finished
+  books), best month, oldest unread (the TBR book bought longest ago), average rating and how many of
+  each star, most-read and most-owned author, top three genres. **A stat only shows when the books
+  have what it needs**: no dates bought, no Bought card or oldest unread; no ratings, no ratings card;
+  fewer than two finished dates, no pace. People who don't track something never see it. Private:
+  nothing is shared or compared (her request, 2026-11-21).
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon. Each status has its own colour and icon beside its word, so they're
   told apart at a glance: TBR slate blue with a bookmark, Reading amber with an open book, Read green
@@ -500,4 +505,7 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-21 | An edition added from that search is saved with the ISBN she scanned (as its ISBN, and kept with the edition's own), so the next scan of that copy shows ALREADY OWNED | recommendation, to confirm |
 | 2026-11-21 | Status bubbles on covers each get their own colour and icon, keeping the word (her examples: Read with a tick, TBR another colour or icon). Colours chosen to read at 4.5:1 or better in light and dark; built in 0.5.5, open to her adjustments | product owner |
 | 2026-11-21 | A private stats page in Settings: all / Physical / Kindle; total, each status, bought and finished in the last 30 days, 90 days and 12 months. Built in 0.7.0. The brief only excludes challenges, competitions and *social* statistics; "Never in scope" had shortened that to "statistics", now corrected | product owner |
+| 2026-11-21 | Stats, after trying 0.7.0: Finished reading above Bought; a card only shows when at least one book has what it needs (no dates bought, no Bought card), so people who don't track something don't see it. Built in 0.8.0 | product owner |
+| 2026-11-21 | Fun stats added in 0.8.0: pace (days between finished books, needs two finished dates), best month (needs two in one month), oldest unread, average rating with each star's count, most-read author, top three genres | Mystery |
+| 2026-11-21 | Within those: oldest unread counts TBR books only (a book with no status might have been read long ago); an author shows only with two books or more; ties list every tied author; most-*owned* author and best month added beside most-read; genres counted over the books owned, not only those read | recommendation, to confirm |
 | 2026-11-21 | Series shown, not grouped: "Dune · Book 3" under the cover, on the book's page and on the scan/search sheet; editable by hand. From Open Library's series records (works link to a series and a position); the editions' free-text series is ignored. Books already in the library get theirs filled in once, quietly. Built in 0.6.0 (schema 4) | product owner (where to show it); Mystery (asked) |
