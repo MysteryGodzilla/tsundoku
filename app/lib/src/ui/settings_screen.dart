@@ -18,6 +18,7 @@ import '../theme/palette.dart';
 import 'account_screen.dart';
 import 'recovery_screens.dart';
 import 'restore_screen.dart';
+import 'stats_screen.dart';
 import 'sync_screens.dart';
 import 'widgets.dart';
 
@@ -482,6 +483,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             heading('Library'),
             Card(
               child: Column(children: [
+                // Her request (2026-11-21): her library in numbers.
+                ListTile(
+                  title: const Text('Library stats'),
+                  subtitle: const Text('How many books, by reading status, bought and finished'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const StatsScreen())),
+                ),
+                const Divider(indent: 16, endIndent: 16),
                 ListTile(
                   title: const Text('Saved covers'),
                   subtitle: const Text('Kept on this phone so covers show offline'),

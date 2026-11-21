@@ -36,6 +36,10 @@ These are settled. A technical choice that breaks one of them is the wrong choic
   page and when it's found by a scan or search. Series aren't grouped: each book stays its own entry.
   It comes from Open Library when it knows (most well-known series), and can be typed in or changed
   when editing a book (her request, 2026-11-21).
+- **Library stats** (Settings › Library stats): for all books, Physical only or Kindle only, how many
+  books, how many in each reading status, and how many were bought and finished (books marked Read,
+  by the date finished) in the last 30 days, 90 days and 12 months. Books with no date aren't counted
+  in those, and it says so. Private: nothing is shared or compared (her request, 2026-11-21).
 - In the cover grid, each cover shows a small bubble with its reading status (when one is set) and a
   small Kindle or Physical icon. Each status has its own colour and icon beside its word, so they're
   told apart at a glance: TBR slate blue with a bookmark, Reading amber with an open book, Read green
@@ -111,7 +115,8 @@ These are settled. A technical choice that breaks one of them is the wrong choic
 
 ### Never in scope
 Social features (friends, followers, feeds, public profiles), community reviews or
-recommendations, reading challenges or statistics, audiobooks, custom shelves or collections,
+recommendations, reading challenges, competitions or social statistics (her own private stats are
+fine: see Settings › Library stats), audiobooks, custom shelves or collections,
 purchase price or place, bulk import, multiple copies, Google Books or any other book database,
 Amazon integration, browser extensions, retailer detection, paid tiers, advertising.
 
@@ -494,4 +499,5 @@ Plain-language questions about how the app should behave. Ask one at a time; "sk
 | 2026-11-21 | A scan (or typed ISBN) Open Library doesn't know steers to searching by title or author, not to entering it by hand; a search that finds nothing offers entering it by hand. Built in 0.5.4 | product owner |
 | 2026-11-21 | An edition added from that search is saved with the ISBN she scanned (as its ISBN, and kept with the edition's own), so the next scan of that copy shows ALREADY OWNED | recommendation, to confirm |
 | 2026-11-21 | Status bubbles on covers each get their own colour and icon, keeping the word (her examples: Read with a tick, TBR another colour or icon). Colours chosen to read at 4.5:1 or better in light and dark; built in 0.5.5, open to her adjustments | product owner |
+| 2026-11-21 | A private stats page in Settings: all / Physical / Kindle; total, each status, bought and finished in the last 30 days, 90 days and 12 months. Built in 0.7.0. The brief only excludes challenges, competitions and *social* statistics; "Never in scope" had shortened that to "statistics", now corrected | product owner |
 | 2026-11-21 | Series shown, not grouped: "Dune · Book 3" under the cover, on the book's page and on the scan/search sheet; editable by hand. From Open Library's series records (works link to a series and a position); the editions' free-text series is ignored. Books already in the library get theirs filled in once, quietly. Built in 0.6.0 (schema 4) | product owner (where to show it); Mystery (asked) |
